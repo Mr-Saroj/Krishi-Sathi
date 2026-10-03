@@ -119,12 +119,10 @@ export default function Register() {
      * Register farmer
      */
     const onRegister = async () => {
-        // First validate frontend form
         if (!validate()) {
             return;
         }
 
-        // Call useAuth hook
         const result = await register({
             fullName: name.trim(),
             email: email.trim(),
@@ -132,23 +130,19 @@ export default function Register() {
             password: password,
         });
 
-        // Registration successful
         if (result.success) {
-            Alert.alert(
-                "Registration Successful",
-                "Your account has been created successfully.",
-                [
-                    {
-                        text: "OK",
-                        onPress: () => {
-                            router.replace("/(auth)/login");
-                        },
-                    },
-                ]
-            );
+            // Show the message sent by the backend
+            Alert.alert("Registration Successful", result.message, [
+                {
+                    text: "OK",
+                    onPress: () => router.replace("/(auth)/login"),
+                },
+            ]);
+        } else {
+            // Show the error message sent by the backend
+            Alert.alert("Registration Failed", result.message);
         }
     };
-
     return (
         <View className="flex-1 bg-wheat-soft">
             <StatusBar
