@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
+import { Alert } from 'react-native';
+import { useAuth } from '../../src/auth/hooks/useAuth';
 
 const LOGO = require('../../assets/app_logo.png');
 const PLACEHOLDER = '#8FA396';
@@ -54,7 +56,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  const [loading, setLoading] = useState(false);
+  const { login, loading } = useAuth();
+
+  
 
   // The logo PNG has wide margins, so crop to the artwork
   const logoW = Math.min(width - 64, 300);
@@ -67,18 +71,44 @@ export default function Login() {
     return Object.keys(e).length === 0;
   };
 
-  const onLogin = async () => {
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      // TODO: call your login API here, e.g.
-      // await api.post('/auth/login', { mobile, password });
-      router.replace('/home' as any); // change to your home screen
-    } finally {
-      setLoading(false);
-    }
-  };
+ const onLogin = async () => {
 
+  if (!validate()) {
+    return;
+  }
+
+  const result = await login({
+    mobileNumber: mobile,
+    password: password,
+  });
+
+
+  // Login failed
+  if (!result.success) {
+
+    Alert.alert(
+      "Login Failed",
+      result.message
+    );
+
+    return;
+  }
+
+
+  // Login successful
+  Alert.alert(
+    "Login Successful",
+    `Welcome back, ${result.data?.fullName}!`,
+    [
+      {
+        text: "OK",
+        onPress: () => {
+          router.replace("/home" as any);
+        },
+      },
+    ]
+  );
+};
   return (
     <View className="flex-1 bg-wheat-soft">
       <StatusBar barStyle="dark-content" backgroundColor="#FBF1DA" />
