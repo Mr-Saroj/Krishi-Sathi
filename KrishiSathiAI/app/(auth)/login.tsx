@@ -73,7 +73,7 @@ export default function Login() {
     try {
       // TODO: call your login API here, e.g.
       // await api.post('/auth/login', { mobile, password });
-      router.replace('/' as any); // change to your home screen
+      router.replace('/home' as any); // change to your home screen
     } finally {
       setLoading(false);
     }
