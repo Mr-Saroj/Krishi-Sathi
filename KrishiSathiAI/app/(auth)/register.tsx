@@ -241,7 +241,7 @@ export default function Register() {
 
                                 <TextInput
                                     className="h-full flex-1 text-base text-ink"
-                                    placeholder="98765 43210"
+                                    placeholder="xxxxx xxxxx"
                                     placeholderTextColor={PLACEHOLDER}
                                     value={mobile}
                                     onChangeText={(text) =>

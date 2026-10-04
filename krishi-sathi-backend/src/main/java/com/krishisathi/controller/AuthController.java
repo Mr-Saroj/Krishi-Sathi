@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import com.krishisathi.dto.ApiResponse;
+import com.krishisathi.dto.LoginRequest;
+import com.krishisathi.dto.LoginResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,5 +30,14 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new ApiResponse(message));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request) {
+
+        LoginResponse response = authService.login(request);
+
+        return ResponseEntity.ok(response);
     }
 }

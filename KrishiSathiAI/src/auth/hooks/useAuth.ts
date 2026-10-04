@@ -17,7 +17,7 @@ export const useAuth = () => {
                 success: true,
                 message: response?.message || "Your account has been created successfully.",
             };
-        } catch (error) {
+        } catch (error) { 
             let message = "Something went wrong";
 
             if (axios.isAxiosError(error)) {
