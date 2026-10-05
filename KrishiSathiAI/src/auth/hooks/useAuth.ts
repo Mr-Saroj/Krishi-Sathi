@@ -10,30 +10,20 @@ import {
 
 import { saveAuthData } from "../../services/storageService";
 
-
 export const useAuth = () => {
-
   const [loading, setLoading] = useState(false);
-
-  const [serverError, setServerError] =
-    useState("");
-
+  const [serverError, setServerError] = useState("");
 
   // =========================
   // REGISTER
   // =========================
 
-  const register = async (
-    data: RegisterData
-  ) => {
-
+  const register = async (data: RegisterData) => {
     setLoading(true);
     setServerError("");
 
     try {
-
-      const response =
-        await registerFarmer(data);
+      const response = await registerFarmer(data);
 
       return {
         success: true,
@@ -41,25 +31,17 @@ export const useAuth = () => {
           response?.message ||
           "Your account has been created successfully.",
       };
-
     } catch (error) {
-
-      let message =
-        "Something went wrong";
+      let message = "Something went wrong";
 
       if (axios.isAxiosError(error)) {
-
         if (error.response) {
-
           message =
             error.response.data?.message ||
             "Unable to register. Please try again.";
-
         } else {
-
           message =
             "Cannot reach the server. Check your internet connection.";
-
         }
       }
 
@@ -69,64 +51,45 @@ export const useAuth = () => {
         success: false,
         message,
       };
-
     } finally {
-
       setLoading(false);
     }
   };
-
 
   // =========================
   // LOGIN
   // =========================
 
-  const login = async (
-    data: LoginData
-  ) => {
-
+  const login = async (data: LoginData) => {
     setLoading(true);
     setServerError("");
 
     try {
+      const response = await loginFarmer(data);
 
-      const response =
-        await loginFarmer(data);
-
-
-      // Store JWT + user information
+      // Save authentication information
       await saveAuthData(
         response.token,
         response.role,
         response.fullName
       );
 
-
       return {
         success: true,
         message: "Login successful",
         data: response,
       };
-
     } catch (error) {
-
-      let message =
-        "Something went wrong";
+      let message = "Something went wrong";
 
       if (axios.isAxiosError(error)) {
-
         if (error.response) {
-
-          // Backend exception message
           message =
             error.response.data?.message ||
             "Login failed. Please try again.";
-
         } else {
-
           message =
             "Cannot reach the server. Check your internet connection.";
-
         }
       }
 
@@ -136,13 +99,10 @@ export const useAuth = () => {
         success: false,
         message,
       };
-
     } finally {
-
       setLoading(false);
     }
   };
-
 
   return {
     register,

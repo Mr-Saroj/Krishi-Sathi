@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 
 import {
     ActivityIndicator,
-    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -17,9 +16,9 @@ import {
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 
-import { useAuth } from "../../src/auth/hooks/useAuth";
+import { useRegister } from "../../src/auth/hooks/useRegister";
 
 const LOGO = require("../../assets/app_logo.png");
 
@@ -65,84 +64,34 @@ function Field({
 }
 
 export default function Register() {
-    const router = useRouter();
     const { width } = useWindowDimensions();
 
-    // Form state
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [mobile, setMobile] = useState("");
-    const [password, setPassword] = useState("");
+    const {
+        name,
+        setName,
 
-    // UI state
-    const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState<Errors>({});
+        email,
+        setEmail,
 
-    // Authentication hook
-    const { register, loading, serverError } = useAuth();
+        mobile,
+        setMobile,
 
-    // The logo PNG has wide margins, so crop to the artwork
+        password,
+        setPassword,
+
+        showPassword,
+        setShowPassword,
+
+        errors,
+
+        onRegister,
+
+        loading,
+        serverError,
+    } = useRegister();
+
     const logoW = Math.min(width - 64, 300);
 
-    /**
-     * Validate form before sending request
-     */
-    const validate = () => {
-        const e: Errors = {};
-
-        // Full name
-        if (name.trim().length < 2) {
-            e.name = "Enter your full name";
-        }
-
-        // Email
-        if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-            e.email = "Enter a valid email address";
-        }
-
-        // Mobile
-        if (!/^[6-9]\d{9}$/.test(mobile)) {
-            e.mobile = "Enter a 10-digit mobile number";
-        }
-
-        // Password
-        if (password.length < 6) {
-            e.password = "Use at least 6 characters";
-        }
-
-        setErrors(e);
-
-        return Object.keys(e).length === 0;
-    };
-
-    /**
-     * Register farmer
-     */
-    const onRegister = async () => {
-        if (!validate()) {
-            return;
-        }
-
-        const result = await register({
-            fullName: name.trim(),
-            email: email.trim(),
-            mobileNumber: mobile,
-            password: password,
-        });
-
-        if (result.success) {
-            // Show the message sent by the backend
-            Alert.alert("Registration Successful", result.message, [
-                {
-                    text: "OK",
-                    onPress: () => router.replace("/(auth)/login"),
-                },
-            ]);
-        } else {
-            // Show the error message sent by the backend
-            Alert.alert("Registration Failed", result.message);
-        }
-    };
     return (
         <View className="flex-1 bg-wheat-soft">
             <StatusBar

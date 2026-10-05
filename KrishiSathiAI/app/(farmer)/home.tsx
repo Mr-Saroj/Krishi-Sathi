@@ -1,20 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Image,
+  Animated,
+  Easing,
   Linking,
   ScrollView,
-  StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import type { TabKey } from '../../src/farmer/components/FarmerBottomNav';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const LOGO = require('../../assets/app_logo.png');
 
 // Palette (taken from the design)
 const FOREST = '#14532D';
@@ -22,7 +20,14 @@ const LEAF = '#2E7D32';
 const AMBER = '#F5A623';
 const MUTED = '#5E7365';
 const INK = '#1F2A24';
-const CREAM = '#FBF8F1';
+
+// Routes that should switch the bottom-bar tab instead of opening a new page
+const TAB_ROUTES: Record<string, TabKey> = {
+  '/crops': 'crops',
+  '/scan': 'scan',
+  '/adviser': 'adviser',
+  '/profile': 'profile',
+};
 
 /* ----------------------------- Small pieces ----------------------------- */
 
@@ -72,118 +77,231 @@ function RoundIconButton({
   );
 }
 
-/* -------------------------------- Header -------------------------------- */
+/* ------------------------------- Greeting ------------------------------- */
 
-const LANGS = [
-  { code: 'or', label: 'ଓଡ଼ିଆ' },
-  { code: 'hi', label: 'हिन्दी' },
-  { code: 'en', label: 'EN' },
-];
+// Reusable looping animation value (0 → 1). `reverse` makes it ping-pong.
+function useLoop(duration: number, opts: { reverse?: boolean; delay?: number } = {}) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const run = opts.reverse
+      ? Animated.sequence([
+          Animated.timing(v, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      : Animated.timing(v, { toValue: 1, duration, easing: Easing.linear, useNativeDriver: true });
+    const loop = Animated.loop(
+      opts.delay ? Animated.sequence([Animated.delay(opts.delay), run]) : run
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  return v;
+}
 
-function Header() {
-  const router = useRouter();
-  const [lang, setLang] = useState('or');
-
+// Leaf / grain falling across the banner (like confetti in a sale banner)
+function FallingItem({
+  left,
+  delay,
+  duration,
+  icon,
+  color,
+  size = 16,
+}: {
+  left: `${number}%`;
+  delay: number;
+  duration: number;
+  icon: IconName;
+  color: string;
+  size?: number;
+}) {
+  const t = useLoop(duration, { delay });
   return (
-    <View className="flex-row items-center justify-between px-4 pb-2 pt-1">
-      <View className="flex-row items-center">
-        <Image source={LOGO} style={{ width: 40, height: 40 }} resizeMode="contain" />
-        <View className="ml-2">
-          <Text className="text-[18px] font-extrabold leading-5" style={{ color: FOREST }}>
-            Krishi Sathi
-          </Text>
-          <Text className="text-xs" style={{ color: MUTED }}>
-            Home
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-center">
-        {/* Language switch */}
-        <View className="mr-2 flex-row items-center rounded-full bg-[#EFEBE0] p-1">
-          {LANGS.map((l) => {
-            const active = lang === l.code;
-            return (
-              <TouchableOpacity
-                key={l.code}
-                onPress={() => setLang(l.code)}
-                className="rounded-full px-3 py-1.5"
-                style={{ backgroundColor: active ? FOREST : 'transparent' }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  className="text-[13px] font-bold"
-                  style={{ color: active ? '#FFFFFF' : MUTED }}
-                >
-                  {l.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <RoundIconButton icon="microphone" bg={AMBER} color="#FFFFFF" size={40} label="Voice help" />
-        <View className="w-2" />
-        <RoundIconButton
-          icon="account"
-          bg={FOREST}
-          color="#FFFFFF"
-          size={36}
-          label="Profile"
-          onPress={() => router.push('/profile' as any)}
-        />
-      </View>
-    </View>
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left,
+        opacity: t.interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, 0.9, 0.9, 0] }),
+        transform: [
+          { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [-20, 250] }) },
+          { translateX: t.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 14, -6] }) },
+          { rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+        ],
+      }}
+    >
+      <MaterialCommunityIcons name={icon} size={size} color={color} />
+    </Animated.View>
   );
 }
 
-/* ------------------------------- Greeting ------------------------------- */
+function Greeting({ userName = 'Farmer' }: { userName?: string }) {
+  // loops
+  const sunSpin = useLoop(14000);
+  const shimmer = useLoop(3200, { delay: 1200 });
+  const pulse = useLoop(1600);
+  const wave = useLoop(500, { reverse: true });
+  const float = useLoop(2200, { reverse: true });
 
-function Greeting() {
+  // entry animation
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(enter, { toValue: 1, friction: 7, tension: 40, useNativeDriver: true }).start();
+  }, []);
+  const rise = (offset: number) => ({
+    opacity: enter,
+    transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) }],
+  });
+
   return (
-    <Card>
-      <View className="flex-row items-start justify-between">
+    <View
+      className="mx-4 mb-4 overflow-hidden rounded-3xl p-4"
+      style={{
+        backgroundColor: FOREST,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
+      }}
+    >
+      {/* ---- Background decoration ---- */}
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', right: -50, top: -50, width: 190, height: 190, borderRadius: 95, backgroundColor: 'rgba(255,255,255,0.06)' }}
+      />
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', left: -40, bottom: -60, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(46,125,50,0.55)' }}
+      />
+
+      {/* Rotating sun */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          right: 62,
+          top: 10,
+          opacity: 0.9,
+          transform: [{ rotate: sunSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }],
+        }}
+      >
+        <MaterialCommunityIcons name="white-balance-sunny" size={46} color={AMBER} />
+      </Animated.View>
+
+      {/* Falling leaves & grains */}
+      <FallingItem left="8%" delay={0} duration={5200} icon="leaf" color="#8BD18F" />
+      <FallingItem left="26%" delay={1400} duration={6000} icon="grain" color={AMBER} size={14} />
+      <FallingItem left="48%" delay={700} duration={5600} icon="leaf" color="#B8E6B9" size={13} />
+      <FallingItem left="68%" delay={2200} duration={6400} icon="grain" color="#FFD27A" size={15} />
+      <FallingItem left="86%" delay={1000} duration={5000} icon="leaf" color="#8BD18F" size={18} />
+
+      {/* Shimmer sweep (event-banner shine) */}
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -40,
+          height: 340,
+          width: 56,
+          backgroundColor: 'rgba(255,255,255,0.10)',
+          transform: [
+            { translateX: shimmer.interpolate({ inputRange: [0, 1], outputRange: [-120, 460] }) },
+            { rotate: '20deg' },
+          ],
+        }}
+      />
+
+      {/* ---- Content ---- */}
+      <Animated.View style={rise(14)} className="flex-row items-start justify-between">
         <View className="flex-1 pr-3">
-          <View className="flex-row items-center">
-            <MaterialCommunityIcons name="map-marker-outline" size={16} color={FOREST} />
-            <Text className="ml-1 text-[13px] font-semibold" style={{ color: FOREST }}>
-              Barpali, Bargarh (Odisha)
-            </Text>
-          </View>
-          <Text
-            className="mt-1 text-[22px] font-extrabold"
-            style={{ color: INK }}
-            numberOfLines={1}
+          {/* Location chip */}
+          <View
+            className="flex-row items-center self-start rounded-full px-2.5 py-1"
+            style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}
           >
-            Namaskar,MRDon! 👋
+            <MaterialCommunityIcons name="map-marker-outline" size={14} color="#FFFFFF" />
+            <Text className="ml-1 text-[12px] font-semibold text-white">Barpali, Bargarh (Odisha)</Text>
+          </View>
+
+          {/* Welcome back */}
+          <View className="mt-3 flex-row items-center">
+            <Text className="text-[14px] font-semibold" style={{ color: '#FFD27A' }}>
+              Namaskar
+            </Text>
+            <Animated.Text
+              style={{
+                marginLeft: 6,
+                fontSize: 16,
+                transform: [
+                  { rotate: wave.interpolate({ inputRange: [0, 1], outputRange: ['-14deg', '20deg'] }) },
+                ],
+              }}
+            >
+              🙏
+            </Animated.Text>
+          </View>
+          <Text className="mt-0.5 text-[15px]" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            Welcome back,
           </Text>
-          <Text className="mt-0.5 text-[14px]" style={{ color: MUTED }}>
-            4.2 Acres • Paddy & Cotton
+          <Text className="text-[26px] font-extrabold text-white" numberOfLines={1}>
+            {userName} 👋
           </Text>
         </View>
-        <RoundIconButton icon="volume-high" bg="#FCE8CC" color="#B26B00" size={44} label="Read aloud" />
-      </View>
+
+        <Animated.View style={{ transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+          <RoundIconButton icon="volume-high" bg="#FCE8CC" color="#B26B00" size={44} label="Read aloud" />
+        </Animated.View>
+      </Animated.View>
+
+      {/* Farm info chips */}
+      <Animated.View style={rise(20)} className="mt-3 flex-row">
+        <View className="mr-2 flex-row items-center rounded-full px-3 py-1.5" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
+          <MaterialCommunityIcons name="vector-square" size={14} color="#FFD27A" />
+          <Text className="ml-1 text-[12px] font-bold text-white">4.2 Acres</Text>
+        </View>
+        <View className="flex-row items-center rounded-full px-3 py-1.5" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
+          <MaterialCommunityIcons name="sprout" size={14} color="#8BD18F" />
+          <Text className="ml-1 text-[12px] font-bold text-white">Paddy & Cotton</Text>
+        </View>
+      </Animated.View>
 
       {/* Voice prompt */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        className="mt-4 flex-row items-center rounded-2xl border border-[#F6D9A8] bg-[#FEF0DA] p-3"
-        accessibilityRole="button"
-        accessibilityLabel="Speak your question"
-      >
-        <RoundIconButton icon="microphone" bg={AMBER} color="#FFFFFF" size={44} label="Mic" />
-        <View className="ml-3 flex-1">
-          <Text className="text-[15px] font-bold" style={{ color: INK }}>
-            What help do you need today?
-          </Text>
-          <Text className="text-[13px]" style={{ color: MUTED }} numberOfLines={1}>
-            Tap mic and speak in your language
-          </Text>
-        </View>
-        <MaterialCommunityIcons name="chevron-right" size={26} color={INK} />
-      </TouchableOpacity>
-    </Card>
+      <Animated.View style={rise(28)}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          className="mt-4 flex-row items-center rounded-2xl border border-[#F6D9A8] bg-[#FEF0DA] p-3"
+          accessibilityRole="button"
+          accessibilityLabel="Speak your question"
+        >
+          {/* Mic with pulsing ring */}
+          <View className="items-center justify-center" style={{ width: 44, height: 44 }}>
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: AMBER,
+                opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] }),
+                transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] }) }],
+              }}
+            />
+            <RoundIconButton icon="microphone" bg={AMBER} color="#FFFFFF" size={44} label="Mic" />
+          </View>
+          <View className="ml-3 flex-1">
+            <Text className="text-[15px] font-bold" style={{ color: INK }}>
+              What help do you need today?
+            </Text>
+            <Text className="text-[13px]" style={{ color: MUTED }} numberOfLines={1}>
+              Tap mic and speak in your language
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={26} color={INK} />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -401,12 +519,19 @@ const SERVICES: Service[] = [
   },
 ];
 
-function ServiceCard({ s }: { s: Service }) {
+function ServiceCard({ s, onNavigate }: { s: Service; onNavigate?: (tab: TabKey) => void }) {
   const router = useRouter();
+
+  const handlePress = () => {
+    const tab = TAB_ROUTES[s.route];
+    if (tab && onNavigate) onNavigate(tab); // switch middle section only
+    else router.push(s.route as any); // other pages open normally
+  };
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => router.push(s.route as any)}
+      onPress={handlePress}
       className="flex-1 rounded-3xl p-3.5"
       style={{
         backgroundColor: s.featured ? FOREST : '#FFFFFF',
@@ -451,7 +576,7 @@ function ServiceCard({ s }: { s: Service }) {
   );
 }
 
-function QuickServices() {
+function QuickServices({ onNavigate }: { onNavigate?: (tab: TabKey) => void }) {
   const rows = [SERVICES.slice(0, 2), SERVICES.slice(2, 4), SERVICES.slice(4, 6)];
   return (
     <View className="mb-4 px-4">
@@ -466,7 +591,7 @@ function QuickServices() {
       {rows.map((row, i) => (
         <View key={i} className="mb-3 flex-row gap-3">
           {row.map((s) => (
-            <ServiceCard key={s.title} s={s} />
+            <ServiceCard key={s.title} s={s} onNavigate={onNavigate} />
           ))}
         </View>
       ))}
@@ -650,109 +775,21 @@ function Helpline() {
   );
 }
 
-/* ------------------------------- Bottom nav ------------------------------- */
+/* --------------------- Home = middle part of dashboard -------------------- */
 
-function BottomNav() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  const Item = ({
-    icon,
-    label,
-    route,
-    active,
-  }: {
-    icon: IconName;
-    label: string;
-    route: string;
-    active?: boolean;
-  }) => (
-    <TouchableOpacity
-      className="flex-1 items-center pt-2"
-      onPress={() => router.push(route as any)}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <MaterialCommunityIcons name={icon} size={24} color={active ? FOREST : MUTED} />
-      <Text
-        className="mt-0.5 text-[11px]"
-        style={{ color: active ? FOREST : MUTED, fontWeight: active ? '700' : '500' }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
+export default function Home({ onNavigate }: { onNavigate?: (tab: TabKey) => void }) {
   return (
-    <View
-      className="absolute bottom-0 left-0 right-0 flex-row rounded-t-3xl border-t border-[#EEE9DC] bg-white"
-      style={{
-        paddingBottom: Math.max(insets.bottom, 8),
-        height: 64 + Math.max(insets.bottom, 8),
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: -2 },
-        elevation: 12,
-      }}
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingTop: 8, paddingBottom: 130 }}
     >
-      <Item icon="home-outline" label="Home" route="/" active />
-      <Item icon="sprout-outline" label="My Crops" route="/crops" />
-
-      {/* Center AI Doctor button */}
-      <View className="flex-1 items-center">
-        <TouchableOpacity
-          onPress={() => router.push('/scan' as any)}
-          activeOpacity={0.9}
-          className="h-16 w-16 items-center justify-center rounded-full border-4 border-white"
-          style={{
-            backgroundColor: FOREST,
-            marginTop: -26,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 8,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="AI Doctor"
-        >
-          <MaterialCommunityIcons name="camera" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text className="mt-0.5 text-[11px] font-bold" style={{ color: FOREST }}>
-          AI Doctor
-        </Text>
-      </View>
-
-      <Item icon="storefront-outline" label="Store" route="/store" />
-      <Item icon="account-outline" label="Profile" route="/profile" />
-    </View>
-  );
-}
-
-/* --------------------------------- Screen --------------------------------- */
-
-export default function Home() {
-  return (
-    <View className="flex-1" style={{ backgroundColor: CREAM }}>
-      <StatusBar barStyle="dark-content" backgroundColor={CREAM} />
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <Header />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 130 }}
-        >
-          <Greeting />
-          <Weather />
-          <MandiRates />
-          <QuickServices />
-          <Tasks />
-          <Advisory />
-          <Helpline />
-        </ScrollView>
-      </SafeAreaView>
-
-      <BottomNav />
-    </View>
+      <Greeting />
+      <Weather />
+      <MandiRates />
+      <QuickServices onNavigate={onNavigate} />
+      <Tasks />
+      <Advisory />
+      <Helpline />
+    </ScrollView>
   );
 }
