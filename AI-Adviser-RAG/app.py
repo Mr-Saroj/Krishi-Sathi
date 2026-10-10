@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # print(store.query("What is AI?",top_k=3))
     
     reg_search=RAGSearch()
-    query="How to protect tomato plant if it has disease Late Blight?"
+    query="How to protect tomato plant if it has disease Early Blight?"
     summary=reg_search.search_and_summarize(query,top_k=3)
     print("Summary: ",summary)
     

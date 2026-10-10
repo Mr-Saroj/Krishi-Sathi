@@ -18,7 +18,7 @@ class RAGSearch:
             self.vectorestore.build_from_documents(docs)
         else:
             self.vectorestore.load()
-        groq_api_key="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"
+        groq_api_key = os.getenv("GROQ_API_KEY")
         llm_model = "openai/gpt-oss-20b"
         self.llm=ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
         print(f"[INFO] Groq LLM initialized: {llm_model}")
