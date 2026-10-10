@@ -1,0 +1,55 @@
+
+Python Programming Introduction
+
+Python is a high-level, interpreted, general-purpose programming language.
+
+Python was created by Guido van Rossum and was first released in 1991.
+
+Python is known for its simple and readable syntax, which makes it easy
+for beginners to learn.
+
+Python is widely used in many areas, including:
+
+1. Web Development
+2. Data Science
+3. Machine Learning
+4. Artificial Intelligence
+5. Automation
+6. Scientific Computing
+7. Backend Development
+
+A simple Python program looks like this:
+
+print("Hello, World!")
+
+Python uses indentation to define blocks of code.
+
+For example:
+
+if 10 > 5:
+    print("10 is greater than 5")
+
+Python supports different data types such as:
+
+- int
+- float
+- string
+- boolean
+- list
+- tuple
+- set
+- dictionary
+
+Python also supports important programming concepts such as:
+
+- Variables
+- Conditions
+- Loops
+- Functions
+- Classes
+- Objects
+- Exception Handling
+- Modules
+
+Because Python has a large number of libraries and frameworks,
+it is widely used in modern software development and artificial intelligence.

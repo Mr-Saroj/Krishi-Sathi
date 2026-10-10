@@ -1,0 +1,100 @@
+
+Machine Learning Basics
+
+Machine Learning is a branch of Artificial Intelligence that allows
+computers to learn patterns from data and make predictions or decisions
+without being explicitly programmed for every situation.
+
+Machine Learning works by providing data to an algorithm. The algorithm
+learns patterns from the data and uses those patterns to make predictions
+on new data.
+
+For example, if we provide a machine learning model with information
+about houses such as size, location, and number of rooms along with their
+prices, the model can learn the relationship between these features and
+house prices.
+
+The three major types of Machine Learning are:
+
+1. Supervised Learning
+2. Unsupervised Learning
+3. Reinforcement Learning
+
+Supervised Learning:
+
+In supervised learning, the model learns from labeled data.
+
+For example:
+
+Input:
+House size = 1500 square feet
+
+Output:
+House price = 500000
+
+Common supervised learning algorithms include:
+
+- Linear Regression
+- Logistic Regression
+- Decision Tree
+- Random Forest
+- Support Vector Machine
+- K-Nearest Neighbors
+
+Unsupervised Learning:
+
+In unsupervised learning, the data does not contain predefined labels.
+The algorithm tries to discover patterns or groups in the data.
+
+Common unsupervised learning algorithms include:
+
+- K-Means Clustering
+- Hierarchical Clustering
+- Principal Component Analysis
+
+Reinforcement Learning:
+
+In reinforcement learning, an agent learns by interacting with an
+environment.
+
+The agent receives rewards for good actions and penalties for bad actions.
+Over time, the agent learns a strategy that helps it maximize its reward.
+
+Important Machine Learning concepts include:
+
+- Dataset
+- Features
+- Labels
+- Training Data
+- Testing Data
+- Model
+- Training
+- Prediction
+- Accuracy
+- Loss Function
+- Optimization
+
+A typical Machine Learning workflow is:
+
+1. Collect Data
+2. Clean Data
+3. Prepare Data
+4. Split Data into Training and Testing Sets
+5. Select a Machine Learning Algorithm
+6. Train the Model
+7. Evaluate the Model
+8. Make Predictions
+
+Machine Learning is widely used in:
+
+- Recommendation Systems
+- Fraud Detection
+- Image Recognition
+- Speech Recognition
+- Medical Diagnosis
+- Spam Detection
+- Price Prediction
+- Natural Language Processing
+
+Machine Learning is an important technology used in modern Artificial
+Intelligence applications.
