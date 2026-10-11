@@ -106,7 +106,7 @@ public class AuthService {
                 }
 
                 String token = jwtService.generateToken(
-                                user.getMobileNumber(),
+                                user.getEmail(),
                                 user.getRole());
 
                 return new LoginResponse(

@@ -27,7 +27,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/register",
                     "/api/auth/login",
-                    "/api/disease/predict"
+                    "/api/disease/predict",
+                    "/api/chat/stream"
                 ).permitAll()
 
                 .anyRequest().authenticated()

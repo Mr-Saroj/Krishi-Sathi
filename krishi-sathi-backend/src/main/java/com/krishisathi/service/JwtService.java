@@ -31,13 +31,13 @@ public class JwtService {
     }
 
     public String generateToken(
-            String mobileNumber,
+            String email,
             Role role) {
 
         Date now = new Date();
 
         return Jwts.builder()
-                .subject(mobileNumber)
+                .subject(email)
 
                 .claim("role", role.name())
 
