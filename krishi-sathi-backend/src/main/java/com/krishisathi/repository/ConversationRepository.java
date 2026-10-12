@@ -12,4 +12,7 @@ public interface ConversationRepository
     List<Conversation> findByUserEmailOrderByUpdatedAtDesc(
             String userEmail
     );
+     List<Conversation> findByUserEmailIgnoreCaseOrderByLastMessageAtDesc(
+            String userEmail
+    );
 }

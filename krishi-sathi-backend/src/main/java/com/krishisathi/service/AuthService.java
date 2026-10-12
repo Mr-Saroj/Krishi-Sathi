@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.krishisathi.dto.LoginRequest;
 import com.krishisathi.dto.LoginResponse;
-import com.krishisathi.service.JwtService;
+
 
 @Service
 
