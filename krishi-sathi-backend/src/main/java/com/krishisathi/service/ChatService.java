@@ -2,6 +2,7 @@
 package com.krishisathi.service;
 
 import com.krishisathi.dto.ChatStreamRequest;
+import com.krishisathi.dto.ConversationResponse;
 import com.krishisathi.model.ChatMessage;
 import com.krishisathi.model.Conversation;
 import com.krishisathi.repository.ChatMessageRepository;
@@ -20,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 
 
 @Service
@@ -29,6 +31,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
+    
 
     public ChatService(
             WebClient fastApiWebClient,
@@ -124,7 +127,8 @@ public class ChatService {
 
         // Keep your existing FastAPI streaming logic.
         StreamingResponseBody body = outputStream -> {
-
+           
+           //This ByteArrayOutputStream will accumulate the complete answer from the AI for saving to MongoDB later.
             ByteArrayOutputStream completeAnswer =
                     new ByteArrayOutputStream();
 
@@ -163,7 +167,6 @@ public class ChatService {
                         }
                     }
                 }
-
                 // Save the completed assistant answer.
                 ChatMessage savedMessage =
                         chatMessageRepository.findById(assistantMessageId)
@@ -212,4 +215,17 @@ public class ChatService {
             String prompt,
             int top_k) {
     }
+
+    public List<ConversationResponse> getMyConversations(
+            String authenticatedEmail) {
+
+        return conversationRepository
+                .findByUserEmailIgnoreCaseOrderByLastMessageAtDesc(
+                        authenticatedEmail
+                )
+                .stream()
+                .map(ConversationResponse::from)
+                .toList();
+    }
+
 }

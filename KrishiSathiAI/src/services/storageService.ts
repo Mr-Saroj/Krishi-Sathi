@@ -65,3 +65,16 @@ export const clearAuthData = async () => {
     FULL_NAME_KEY
   );
 };
+export const storageService = {
+  async saveToken(token: string): Promise<void> {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  },
+
+  async getToken(): Promise<string | null> {
+    return SecureStore.getItemAsync(TOKEN_KEY);
+  },
+
+  async removeToken(): Promise<void> {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  },
+};
