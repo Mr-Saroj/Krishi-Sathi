@@ -1,4 +1,3 @@
-
 import { api } from "../../services/api";
 
 export interface ConversationResponse {
@@ -16,5 +15,11 @@ export const chatService = {
     );
 
     return response.data;
+  },
+
+  async deleteConversation(conversationId: string): Promise<void> {
+    await api.delete(
+      `/chat/conversations/${encodeURIComponent(conversationId)}`
+    );
   },
 };

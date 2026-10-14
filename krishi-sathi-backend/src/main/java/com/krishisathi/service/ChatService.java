@@ -23,209 +23,230 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
-
 @Service
 public class ChatService {
 
-    private final WebClient fastApiWebClient;
-    private final UserRepository userRepository;
-    private final ConversationRepository conversationRepository;
-    private final ChatMessageRepository chatMessageRepository;
-    
+        private final WebClient fastApiWebClient;
+        private final UserRepository userRepository;
+        private final ConversationRepository conversationRepository;
+        private final ChatMessageRepository chatMessageRepository;
 
-    public ChatService(
-            WebClient fastApiWebClient,
-            UserRepository userRepository,
-            ConversationRepository conversationRepository,
-            ChatMessageRepository chatMessageRepository) {
-        this.fastApiWebClient = fastApiWebClient;
-        this.userRepository = userRepository;
-        this.conversationRepository = conversationRepository;
-        this.chatMessageRepository = chatMessageRepository;
-    }
-
-    // Returns both the conversation ID and the streaming response.
-    public record StreamChatResult(
-            String conversationId,
-            StreamingResponseBody body) {
-    }
-
-    public StreamChatResult prepareStream(ChatStreamRequest request) {
-
-        String email = request.getEmail().trim();
-
-        // Verify the user exists.
-        userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "User not found"));
-
-        final String userEmail = email;
-        final Instant now = Instant.now();
-
-        Conversation conversation;
-
-        // Reuse the conversation when an ID is supplied.
-        if (request.getConversationId() != null
-                && !request.getConversationId().isBlank()) {
-
-            conversation = conversationRepository
-                    .findById(request.getConversationId())
-                    .filter(c -> userEmail.equalsIgnoreCase(
-                            c.getUserEmail()))
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "Conversation not found"));
-
-        } else {
-            // First message: create a new conversation.
-            conversation = new Conversation();
-            conversation.setUserEmail(userEmail);
-
-            String prompt = request.getPrompt().trim();
-            conversation.setTitle(
-                    prompt.length() > 80
-                            ? prompt.substring(0, 80)
-                            : prompt);
-
-            conversation.setCreatedAt(now);
+        public ChatService(
+                        WebClient fastApiWebClient,
+                        UserRepository userRepository,
+                        ConversationRepository conversationRepository,
+                        ChatMessageRepository chatMessageRepository) {
+                this.fastApiWebClient = fastApiWebClient;
+                this.userRepository = userRepository;
+                this.conversationRepository = conversationRepository;
+                this.chatMessageRepository = chatMessageRepository;
         }
 
-        conversation.setUpdatedAt(now);
-        conversation.setLastMessageAt(now);
+        // Returns both the conversation ID and the streaming response.
+        public record StreamChatResult(
+                        String conversationId,
+                        StreamingResponseBody body) {
+        }
 
-        // MongoDB generates the ID when saving a new conversation.
-        conversation = conversationRepository.save(conversation);
+        public StreamChatResult prepareStream(ChatStreamRequest request) {
 
-        final String conversationId = conversation.getId();
+                String email = request.getEmail().trim();
 
-        // Save the user's message.
-        ChatMessage userMessage = new ChatMessage();
-        userMessage.setConversationId(conversationId);
-        userMessage.setUserEmail(userEmail);
-        userMessage.setRole("USER");
-        userMessage.setContent(request.getPrompt().trim());
-        userMessage.setStatus("COMPLETED");
-        userMessage.setCreatedAt(now);
-        userMessage.setUpdatedAt(now);
-        chatMessageRepository.save(userMessage);
+                // Verify the user exists.
+                userRepository.findByEmailIgnoreCase(email)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "User not found"));
 
-        // Create an assistant message before streaming starts.
-        ChatMessage assistantMessage = new ChatMessage();
-        assistantMessage.setConversationId(conversationId);
-        assistantMessage.setUserEmail(userEmail);
-        assistantMessage.setRole("ASSISTANT");
-        assistantMessage.setContent("");
-        assistantMessage.setStatus("STREAMING");
-        assistantMessage.setCreatedAt(Instant.now());
-        assistantMessage.setUpdatedAt(Instant.now());
+                final String userEmail = email;
+                final Instant now = Instant.now();
 
-        assistantMessage =
-                chatMessageRepository.save(assistantMessage);
+                Conversation conversation;
 
-        final String assistantMessageId = assistantMessage.getId();
+                // Reuse the conversation when an ID is supplied.
+                if (request.getConversationId() != null
+                                && !request.getConversationId().isBlank()) {
 
-        // Keep your existing FastAPI streaming logic.
-        StreamingResponseBody body = outputStream -> {
-           
-           //This ByteArrayOutputStream will accumulate the complete answer from the AI for saving to MongoDB later.
-            ByteArrayOutputStream completeAnswer =
-                    new ByteArrayOutputStream();
+                        conversation = conversationRepository
+                                        .findById(request.getConversationId())
+                                        .filter(c -> userEmail.equalsIgnoreCase(
+                                                        c.getUserEmail()))
+                                        .orElseThrow(() -> new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Conversation not found"));
 
-            try {
-                try (var chunks = fastApiWebClient.post()
-                        .uri("/api/adviser/chat/stream")
-                        .contentType(
-                                org.springframework.http.MediaType.APPLICATION_JSON)
-                        .bodyValue(new FastApiChatRequest(
-                                request.getPrompt(),
-                                request.getTopK()))
-                        .retrieve()
-                        .bodyToFlux(DataBuffer.class)
-                        .toStream()) {
+                } else {
+                        // First message: create a new conversation.
+                        conversation = new Conversation();
+                        conversation.setUserEmail(userEmail);
 
-                    var iterator = chunks.iterator();
+                        String prompt = request.getPrompt().trim();
+                        conversation.setTitle(
+                                        prompt.length() > 80
+                                                        ? prompt.substring(0, 80)
+                                                        : prompt);
 
-                    while (iterator.hasNext()) {
-                        DataBuffer buffer = iterator.next();
+                        conversation.setCreatedAt(now);
+                }
+
+                conversation.setUpdatedAt(now);
+                conversation.setLastMessageAt(now);
+
+                // MongoDB generates the ID when saving a new conversation.
+                conversation = conversationRepository.save(conversation);
+
+                final String conversationId = conversation.getId();
+
+                // Save the user's message.
+                ChatMessage userMessage = new ChatMessage();
+                userMessage.setConversationId(conversationId);
+                userMessage.setUserEmail(userEmail);
+                userMessage.setRole("USER");
+                userMessage.setContent(request.getPrompt().trim());
+                userMessage.setStatus("COMPLETED");
+                userMessage.setCreatedAt(now);
+                userMessage.setUpdatedAt(now);
+                chatMessageRepository.save(userMessage);
+
+                // Create an assistant message before streaming starts.
+                ChatMessage assistantMessage = new ChatMessage();
+                assistantMessage.setConversationId(conversationId);
+                assistantMessage.setUserEmail(userEmail);
+                assistantMessage.setRole("ASSISTANT");
+                assistantMessage.setContent("");
+                assistantMessage.setStatus("STREAMING");
+                assistantMessage.setCreatedAt(Instant.now());
+                assistantMessage.setUpdatedAt(Instant.now());
+
+                assistantMessage = chatMessageRepository.save(assistantMessage);
+
+                final String assistantMessageId = assistantMessage.getId();
+
+                // Keep your existing FastAPI streaming logic.
+                StreamingResponseBody body = outputStream -> {
+
+                        // This ByteArrayOutputStream will accumulate the complete answer from the AI
+                        // for saving to MongoDB later.
+                        ByteArrayOutputStream completeAnswer = new ByteArrayOutputStream();
 
                         try {
-                            byte[] bytes =
-                                    new byte[buffer.readableByteCount()];
+                                try (var chunks = fastApiWebClient.post()
+                                                .uri("/api/adviser/chat/stream")
+                                                .contentType(
+                                                                org.springframework.http.MediaType.APPLICATION_JSON)
+                                                .bodyValue(new FastApiChatRequest(
+                                                                request.getPrompt(),
+                                                                request.getTopK()))
+                                                .retrieve()
+                                                .bodyToFlux(DataBuffer.class)
+                                                .toStream()) {
 
-                            buffer.read(bytes);
+                                        var iterator = chunks.iterator();
 
-                            // Stream the AI answer to the client.
-                            outputStream.write(bytes);
-                            outputStream.flush();
+                                        while (iterator.hasNext()) {
+                                                DataBuffer buffer = iterator.next();
 
-                            // Accumulate the answer for MongoDB.
-                            completeAnswer.write(bytes);
+                                                try {
+                                                        byte[] bytes = new byte[buffer.readableByteCount()];
 
-                        } finally {
-                            DataBufferUtils.release(buffer);
+                                                        buffer.read(bytes);
+
+                                                        // Stream the AI answer to the client.
+                                                        outputStream.write(bytes);
+                                                        outputStream.flush();
+
+                                                        // Accumulate the answer for MongoDB.
+                                                        completeAnswer.write(bytes);
+
+                                                } finally {
+                                                        DataBufferUtils.release(buffer);
+                                                }
+                                        }
+                                }
+                                // Save the completed assistant answer.
+                                ChatMessage savedMessage = chatMessageRepository.findById(assistantMessageId)
+                                                .orElseThrow();
+
+                                savedMessage.setContent(
+                                                completeAnswer.toString(StandardCharsets.UTF_8));
+                                savedMessage.setStatus("COMPLETED");
+                                savedMessage.setUpdatedAt(Instant.now());
+                                chatMessageRepository.save(savedMessage);
+
+                                // Update conversation timestamps.
+                                Conversation savedConversation = conversationRepository.findById(conversationId)
+                                                .orElseThrow();
+
+                                Instant finishedAt = Instant.now();
+                                savedConversation.setUpdatedAt(finishedAt);
+                                savedConversation.setLastMessageAt(finishedAt);
+                                conversationRepository.save(savedConversation);
+
+                        } catch (Exception ex) {
+
+                                ChatMessage failedMessage = chatMessageRepository.findById(assistantMessageId)
+                                                .orElse(null);
+
+                                if (failedMessage != null) {
+                                        failedMessage.setContent(
+                                                        completeAnswer.toString(StandardCharsets.UTF_8));
+                                        failedMessage.setStatus("FAILED");
+                                        failedMessage.setUpdatedAt(Instant.now());
+                                        chatMessageRepository.save(failedMessage);
+                                }
+
+                                throw new IOException(
+                                                "The farming advice stream failed", ex);
                         }
-                    }
-                }
-                // Save the completed assistant answer.
-                ChatMessage savedMessage =
-                        chatMessageRepository.findById(assistantMessageId)
-                                .orElseThrow();
+                };
 
-                savedMessage.setContent(
-                        completeAnswer.toString(StandardCharsets.UTF_8));
-                savedMessage.setStatus("COMPLETED");
-                savedMessage.setUpdatedAt(Instant.now());
-                chatMessageRepository.save(savedMessage);
+                // The controller uses this ID for the HTTP response header.
+                return new StreamChatResult(conversationId, body);
+        }
 
-                // Update conversation timestamps.
-                Conversation savedConversation =
-                        conversationRepository.findById(conversationId)
-                                .orElseThrow();
+        private record FastApiChatRequest(
+                        String prompt,
+                        int top_k) {
+        }
 
-                Instant finishedAt = Instant.now();
-                savedConversation.setUpdatedAt(finishedAt);
-                savedConversation.setLastMessageAt(finishedAt);
-                conversationRepository.save(savedConversation);
+        public List<ConversationResponse> getMyConversations(
+                        String authenticatedEmail) {
 
-            } catch (Exception ex) {
+                return conversationRepository
+                                .findByUserEmailIgnoreCaseOrderByLastMessageAtDesc(
+                                                authenticatedEmail)
+                                .stream()
+                                .map(ConversationResponse::from)
+                                .toList();
+        }
 
-                ChatMessage failedMessage =
-                        chatMessageRepository.findById(assistantMessageId)
-                                .orElse(null);
+        public void deleteConversation(
+                        String conversationId,
+                        String authenticatedEmail) {
 
-                if (failedMessage != null) {
-                    failedMessage.setContent(
-                            completeAnswer.toString(StandardCharsets.UTF_8));
-                    failedMessage.setStatus("FAILED");
-                    failedMessage.setUpdatedAt(Instant.now());
-                    chatMessageRepository.save(failedMessage);
-                }
+                // 1. Verify that the authenticated farmer exists.
+                String email = authenticatedEmail.trim();
 
-                throw new IOException(
-                        "The farming advice stream failed", ex);
-            }
-        };
+                userRepository.findByEmailIgnoreCase(email)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "User not found"));
 
-        // The controller uses this ID for the HTTP response header.
-        return new StreamChatResult(conversationId, body);
-    }
+                // 2. Find the conversation and verify ownership.
+                Conversation conversation = conversationRepository
+                                .findById(conversationId)
+                                .filter(c -> c.getUserEmail() != null
+                                                && email.equalsIgnoreCase(c.getUserEmail()))
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Conversation not found"));
 
-    private record FastApiChatRequest(
-            String prompt,
-            int top_k) {
-    }
+                // 3. Delete all messages for this conversation.
+                chatMessageRepository.deleteByConversationId(
+                                conversation.getId());
 
-    public List<ConversationResponse> getMyConversations(
-            String authenticatedEmail) {
-
-        return conversationRepository
-                .findByUserEmailIgnoreCaseOrderByLastMessageAtDesc(
-                        authenticatedEmail
-                )
-                .stream()
-                .map(ConversationResponse::from)
-                .toList();
-    }
+                // 4. Delete the conversation itself.
+                conversationRepository.delete(conversation);
+        }
 
 }

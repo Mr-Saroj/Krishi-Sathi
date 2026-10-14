@@ -6,11 +6,11 @@ import {
   Easing,
   FlatList,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { chatService } from "../services/chatService";
 import type { ConversationResponse } from "../services/chatService";
 import ChatHistorySkeleton from "../skeletons/ChatHisytorySkeliton";
@@ -80,6 +80,7 @@ function PulseRing({ delay }: { delay: number }) {
     );
 
     loop.start();
+
     return () => loop.stop();
   }, [anim, delay]);
 
@@ -379,6 +380,9 @@ export default function ChatHistoryList({
   const [chats, setChats] = useState<ConversationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  /* ---------- Load conversations ---------- */
 
   const loadChats = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -419,49 +423,157 @@ export default function ChatHistoryList({
   }, []);
 
   useEffect(() => {
-    loadChats();
+    void loadChats();
   }, [loadChats]);
 
-  const renderItem = ({ item }: { item: ConversationResponse }) => (
-    <View className="mb-3 overflow-hidden rounded-2xl bg-white">
-      <TouchableWithoutFeedback onPress={() => onOpenChat(item.id)}>
+  /* ---------- Delete conversation ---------- */
+
+  const handleDeleteChat = useCallback(
+    (conversation: ConversationResponse) => {
+      if (deletingId !== null) return;
+
+      Alert.alert(
+        "Delete conversation?",
+        "This will permanently delete this conversation and all its messages.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              void (async () => {
+                setDeletingId(conversation.id);
+
+                try {
+                  await chatService.deleteConversation(conversation.id);
+
+                  setChats((previousChats) =>
+                    previousChats.filter(
+                      (chat) => chat.id !== conversation.id
+                    )
+                  );
+                } catch (error: unknown) {
+                  const apiError = error as {
+                    response?: {
+                      status?: number;
+                      data?: unknown;
+                    };
+                    message?: string;
+                  };
+
+                  console.error(
+                    "Failed to delete conversation:",
+                    apiError.response?.data ?? apiError.message
+                  );
+
+                  if (apiError.response?.status === 401) {
+                    Alert.alert(
+                      "Session expired",
+                      "Please log in again before deleting conversations."
+                    );
+                  } else if (apiError.response?.status === 404) {
+                    Alert.alert(
+                      "Conversation not found",
+                      "This conversation may already have been deleted. Refresh your chat history."
+                    );
+                  } else {
+                    Alert.alert(
+                      "Delete failed",
+                      "Unable to delete this conversation. Please try again."
+                    );
+                  }
+                } finally {
+                  setDeletingId(null);
+                }
+              })();
+            },
+          },
+        ]
+      );
+    },
+    [deletingId]
+  );
+
+  /* ---------- Conversation row ---------- */
+
+  const renderItem = ({ item }: { item: ConversationResponse }) => {
+    const isDeleting = deletingId === item.id;
+    const isAnotherDeleting = deletingId !== null && !isDeleting;
+
+    return (
+      <View className="mb-3 overflow-hidden rounded-2xl bg-white">
         <View className="flex-row items-center p-3">
-          <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-green-100">
-            <MaterialCommunityIcons
-              name="robot-outline"
-              size={22}
-              color={LEAF}
-            />
-          </View>
+          {/* Tap the conversation to open it */}
+          <TouchableWithoutFeedback
+            onPress={() => onOpenChat(item.id)}
+          >
+            <View className="flex-1 flex-row items-center">
+              <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-green-100">
+                <MaterialCommunityIcons
+                  name="robot-outline"
+                  size={22}
+                  color={LEAF}
+                />
+              </View>
 
-          <View className="ml-0 flex-1">
-            <Text
-              numberOfLines={1}
-              className="text-[15px] font-bold"
-              style={{ color: INK }}
-            >
-              {item.title || "New conversation"}
-            </Text>
+              <View className="flex-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-[15px] font-bold"
+                  style={{ color: INK }}
+                >
+                  {item.title || "New conversation"}
+                </Text>
 
-            <Text
-              numberOfLines={1}
-              className="mt-0.5 text-[13px]"
-              style={{ color: MUTED }}
-            >
-              Tap to continue this conversation
-            </Text>
-          </View>
+                <Text
+                  numberOfLines={1}
+                  className="mt-0.5 text-[13px]"
+                  style={{ color: MUTED }}
+                >
+                  Tap to continue this conversation
+                </Text>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
 
+          {/* Conversation timestamp */}
           <Text
             className="ml-2 text-[11px]"
             style={{ color: MUTED }}
           >
             {formatWhen(item.lastMessageAt || item.updatedAt)}
           </Text>
+
+          {/* Delete button */}
+          <TouchableOpacity
+            onPress={() => handleDeleteChat(item)}
+            disabled={deletingId !== null}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${item.title || "conversation"
+              }`}
+            accessibilityState={{ disabled: deletingId !== null }}
+            className="ml-2 h-10 w-10 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: "#FEF2F2",
+              opacity: isAnotherDeleting ? 0.4 : 1,
+            }}
+          >
+            <MaterialCommunityIcons
+              name={isDeleting ? "loading" : "delete-outline"}
+              size={22}
+              color="#DC2626"
+            />
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
-    </View>
-  );
+      </View>
+    );
+  };
+
+  /* ---------- Loading skeleton ---------- */
 
   if (loading) {
     return (
@@ -484,6 +596,8 @@ export default function ChatHistoryList({
     );
   }
 
+  /* ---------- Main screen ---------- */
+
   return (
     <View className="flex-1 bg-[#F8FAF5]">
       <View className="mx-4 mb-3 mt-1">
@@ -504,7 +618,7 @@ export default function ChatHistoryList({
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshing={refreshing}
-        onRefresh={() => loadChats(true)}
+        onRefresh={() => void loadChats(true)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 16,

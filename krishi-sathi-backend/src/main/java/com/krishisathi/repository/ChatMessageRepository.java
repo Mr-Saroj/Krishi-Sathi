@@ -12,4 +12,5 @@ public interface ChatMessageRepository
     List<ChatMessage> findByConversationIdOrderByCreatedAtAsc(
             String conversationId
     );
+    void deleteByConversationId(String conversationId);
 }
