@@ -1,6 +1,7 @@
 
 package com.krishisathi.service;
 
+import com.krishisathi.dto.ChatMessageResponse;
 import com.krishisathi.dto.ChatStreamRequest;
 import com.krishisathi.dto.ConversationResponse;
 import com.krishisathi.model.ChatMessage;
@@ -36,23 +37,26 @@ public class ChatService {
                         UserRepository userRepository,
                         ConversationRepository conversationRepository,
                         ChatMessageRepository chatMessageRepository) {
+
                 this.fastApiWebClient = fastApiWebClient;
                 this.userRepository = userRepository;
                 this.conversationRepository = conversationRepository;
                 this.chatMessageRepository = chatMessageRepository;
         }
 
-        // Returns both the conversation ID and the streaming response.
         public record StreamChatResult(
                         String conversationId,
                         StreamingResponseBody body) {
         }
 
-        public StreamChatResult prepareStream(ChatStreamRequest request) {
+        // Create a new conversation or continue an existing one.
+        // The email comes from the authenticated JWT, not the request body.
+        public StreamChatResult prepareStream(
+                        ChatStreamRequest request,
+                        String authenticatedEmail) {
 
-                String email = request.getEmail().trim();
+                String email = authenticatedEmail.trim();
 
-                // Verify the user exists.
                 userRepository.findByEmailIgnoreCase(email)
                                 .orElseThrow(() -> new ResponseStatusException(
                                                 HttpStatus.NOT_FOUND,
@@ -63,24 +67,26 @@ public class ChatService {
 
                 Conversation conversation;
 
-                // Reuse the conversation when an ID is supplied.
                 if (request.getConversationId() != null
                                 && !request.getConversationId().isBlank()) {
 
+                        // Continue the existing conversation only if it belongs
+                        // to the authenticated farmer.
                         conversation = conversationRepository
                                         .findById(request.getConversationId())
-                                        .filter(c -> userEmail.equalsIgnoreCase(
-                                                        c.getUserEmail()))
+                                        .filter(c -> c.getUserEmail() != null
+                                                        && userEmail.equalsIgnoreCase(c.getUserEmail()))
                                         .orElseThrow(() -> new ResponseStatusException(
                                                         HttpStatus.NOT_FOUND,
                                                         "Conversation not found"));
 
                 } else {
-                        // First message: create a new conversation.
+                        // Create a new conversation.
                         conversation = new Conversation();
                         conversation.setUserEmail(userEmail);
 
                         String prompt = request.getPrompt().trim();
+
                         conversation.setTitle(
                                         prompt.length() > 80
                                                         ? prompt.substring(0, 80)
@@ -92,7 +98,6 @@ public class ChatService {
                 conversation.setUpdatedAt(now);
                 conversation.setLastMessageAt(now);
 
-                // MongoDB generates the ID when saving a new conversation.
                 conversation = conversationRepository.save(conversation);
 
                 final String conversationId = conversation.getId();
@@ -106,27 +111,27 @@ public class ChatService {
                 userMessage.setStatus("COMPLETED");
                 userMessage.setCreatedAt(now);
                 userMessage.setUpdatedAt(now);
+
                 chatMessageRepository.save(userMessage);
 
-                // Create an assistant message before streaming starts.
+                // Create an empty assistant message before streaming.
                 ChatMessage assistantMessage = new ChatMessage();
                 assistantMessage.setConversationId(conversationId);
                 assistantMessage.setUserEmail(userEmail);
                 assistantMessage.setRole("ASSISTANT");
                 assistantMessage.setContent("");
                 assistantMessage.setStatus("STREAMING");
-                assistantMessage.setCreatedAt(Instant.now());
-                assistantMessage.setUpdatedAt(Instant.now());
+                assistantMessage.setCreatedAt(now);
+                assistantMessage.setUpdatedAt(now);
 
                 assistantMessage = chatMessageRepository.save(assistantMessage);
 
                 final String assistantMessageId = assistantMessage.getId();
 
-                // Keep your existing FastAPI streaming logic.
+                // Stream the FastAPI response to the client and accumulate
+                // the answer for saving in MongoDB.
                 StreamingResponseBody body = outputStream -> {
 
-                        // This ByteArrayOutputStream will accumulate the complete answer from the AI
-                        // for saving to MongoDB later.
                         ByteArrayOutputStream completeAnswer = new ByteArrayOutputStream();
 
                         try {
@@ -151,11 +156,9 @@ public class ChatService {
 
                                                         buffer.read(bytes);
 
-                                                        // Stream the AI answer to the client.
                                                         outputStream.write(bytes);
                                                         outputStream.flush();
 
-                                                        // Accumulate the answer for MongoDB.
                                                         completeAnswer.write(bytes);
 
                                                 } finally {
@@ -163,7 +166,8 @@ public class ChatService {
                                                 }
                                         }
                                 }
-                                // Save the completed assistant answer.
+
+                                // Mark the assistant response as completed.
                                 ChatMessage savedMessage = chatMessageRepository.findById(assistantMessageId)
                                                 .orElseThrow();
 
@@ -171,15 +175,18 @@ public class ChatService {
                                                 completeAnswer.toString(StandardCharsets.UTF_8));
                                 savedMessage.setStatus("COMPLETED");
                                 savedMessage.setUpdatedAt(Instant.now());
+
                                 chatMessageRepository.save(savedMessage);
 
-                                // Update conversation timestamps.
+                                // Update the conversation timestamps.
                                 Conversation savedConversation = conversationRepository.findById(conversationId)
                                                 .orElseThrow();
 
                                 Instant finishedAt = Instant.now();
+
                                 savedConversation.setUpdatedAt(finishedAt);
                                 savedConversation.setLastMessageAt(finishedAt);
+
                                 conversationRepository.save(savedConversation);
 
                         } catch (Exception ex) {
@@ -192,6 +199,7 @@ public class ChatService {
                                                         completeAnswer.toString(StandardCharsets.UTF_8));
                                         failedMessage.setStatus("FAILED");
                                         failedMessage.setUpdatedAt(Instant.now());
+
                                         chatMessageRepository.save(failedMessage);
                                 }
 
@@ -200,7 +208,6 @@ public class ChatService {
                         }
                 };
 
-                // The controller uses this ID for the HTTP response header.
                 return new StreamChatResult(conversationId, body);
         }
 
@@ -209,6 +216,7 @@ public class ChatService {
                         int top_k) {
         }
 
+        // Get all conversations belonging to a farmer.
         public List<ConversationResponse> getMyConversations(
                         String authenticatedEmail) {
 
@@ -220,11 +228,11 @@ public class ChatService {
                                 .toList();
         }
 
+        // Delete a conversation and its messages.
         public void deleteConversation(
                         String conversationId,
                         String authenticatedEmail) {
 
-                // 1. Verify that the authenticated farmer exists.
                 String email = authenticatedEmail.trim();
 
                 userRepository.findByEmailIgnoreCase(email)
@@ -232,7 +240,6 @@ public class ChatService {
                                                 HttpStatus.NOT_FOUND,
                                                 "User not found"));
 
-                // 2. Find the conversation and verify ownership.
                 Conversation conversation = conversationRepository
                                 .findById(conversationId)
                                 .filter(c -> c.getUserEmail() != null
@@ -241,12 +248,46 @@ public class ChatService {
                                                 HttpStatus.NOT_FOUND,
                                                 "Conversation not found"));
 
-                // 3. Delete all messages for this conversation.
-                chatMessageRepository.deleteByConversationId(
-                                conversation.getId());
-
-                // 4. Delete the conversation itself.
+                chatMessageRepository.deleteByConversationId(conversation.getId());
                 conversationRepository.delete(conversation);
         }
 
+        // Get all messages for a specific conversation.
+        public List<ChatMessageResponse> getConversationMessages(
+                        String conversationId,
+                        String authenticatedEmail) {
+
+                String email = authenticatedEmail.trim();
+
+                System.out.println("Requested conversation ID: " + conversationId);
+                System.out.println("Authenticated email: " + email);
+
+                Conversation conversation = conversationRepository
+                                .findById(conversationId)
+                                .orElseThrow(() -> {
+                                        System.out.println("Conversation ID not found in MongoDB");
+                                        return new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Conversation not found");
+                                });
+
+                System.out.println("Stored conversation ID: " + conversation.getId());
+                System.out.println("Stored owner email: " + conversation.getUserEmail());
+
+                if (conversation.getUserEmail() == null
+                                || !email.equalsIgnoreCase(conversation.getUserEmail().trim())) {
+
+                        System.out.println("Conversation owner does not match authenticated user");
+
+                        throw new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Conversation not found");
+                }
+
+                return chatMessageRepository
+                                .findByConversationIdOrderByCreatedAtAsc(conversation.getId())
+                                .stream()
+                                .map(ChatMessageResponse::from)
+                                .toList();
+        }
 }

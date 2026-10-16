@@ -13,4 +13,5 @@ public interface ChatMessageRepository
             String conversationId
     );
     void deleteByConversationId(String conversationId);
+    
 }

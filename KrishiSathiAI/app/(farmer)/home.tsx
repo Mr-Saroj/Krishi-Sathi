@@ -118,19 +118,6 @@ function Weather() {
         <Stat icon="weather-windy" label="Wind Speed" value="12 km/h" />
         <Stat icon="water-percent" label="Humidity" value="62%" />
       </View>
-
-      <View className="mt-3 flex-row items-center rounded-2xl p-3" style={{ backgroundColor: LEAF }}>
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-white/25">
-          <MaterialCommunityIcons name="check-all" size={22} color="#FFFFFF" />
-        </View>
-        <View className="ml-3 flex-1">
-          <Text className="text-[15px] font-extrabold text-white">Safe to Spray Today</Text>
-          <Text className="text-[13px] text-white/90">
-            Best time: After 4:00 PM when wind drops
-          </Text>
-        </View>
-        <RoundIconButton icon="volume-high" bg="rgba(255,255,255,0.25)" color="#FFFFFF" size={36} label="Read aloud" />
-      </View>
     </Card>
   );
 }
