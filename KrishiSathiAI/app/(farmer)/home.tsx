@@ -10,6 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import type { TabKey } from '../../src/farmer/components/FarmerBottomNav';
 import SchemeBanner from '../../src/farmer/components/SchemeBanner';
+import WeatherData from '../../src/farmer/components/WeatherData';
+import MandiRatesPopup from '../../src/farmer/components/MandiRatesPopup';
 
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -95,30 +97,7 @@ function Stat({ icon, label, value }: { icon: IconName; label: string; value: st
 
 function Weather() {
   return (
-    <Card>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <MaterialCommunityIcons name="white-balance-sunny" size={30} color={AMBER} />
-          <Text className="ml-2 text-[24px] font-extrabold" style={{ color: INK }}>
-            31°C
-          </Text>
-          <Text className="ml-2 mt-1 text-[14px]" style={{ color: MUTED }}>
-            Sunny
-          </Text>
-        </View>
-        <View className="rounded-full bg-[#EFEBE0] px-3 py-1">
-          <Text className="text-[12px] font-semibold" style={{ color: MUTED }}>
-            Updated 7:30 AM
-          </Text>
-        </View>
-      </View>
-
-      <View className="mt-3 flex-row gap-2">
-        <Stat icon="water-outline" label="Rain Chance" value="15%" />
-        <Stat icon="weather-windy" label="Wind Speed" value="12 km/h" />
-        <Stat icon="water-percent" label="Humidity" value="62%" />
-      </View>
-    </Card>
+    <WeatherData />
   );
 }
 
@@ -160,38 +139,70 @@ function Rate({
   );
 }
 
-function MandiRates() {
-  const router = useRouter();
-  return (
-    <Card>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <View className="mr-2 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: LEAF }} />
-          <Text className="text-[18px] font-extrabold" style={{ color: INK }}>
-            Live Mandi Rates
-          </Text>
-        </View>
-        <TouchableOpacity
-          className="flex-row items-center"
-          onPress={() => router.push('/mandi' as any)}
-        >
-          <Text className="text-[14px] font-bold" style={{ color: FOREST }}>
-            View all
-          </Text>
-          <MaterialCommunityIcons name="chevron-right" size={18} color={FOREST} />
-        </TouchableOpacity>
-      </View>
-      <Text className="mb-3 ml-5 text-[12px]" style={{ color: MUTED }}>
-        Bargarh APMC • Today
-      </Text>
 
-      <View className="flex-row gap-3">
-        <Rate name="Paddy (Swarna)" icon="grain" price="₹2,203" change="+₹45" />
-        <Rate name="Cotton" icon="leaf" price="₹7,120" change="+₹120" />
-      </View>
-    </Card>
+function MandiRates() {
+  const [popupVisible, setPopupVisible] = useState(false);
+
+  return (
+    <>
+      <Card>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <View
+              className="mr-2 h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: LEAF }}
+            />
+            <Text className="text-[18px] font-extrabold" style={{ color: INK }}>
+              Live Mandi Rates
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            className="flex-row items-center"
+            activeOpacity={0.7}
+            onPress={() => setPopupVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="View all mandi rates"
+          >
+            <Text className="text-[14px] font-bold" style={{ color: FOREST }}>
+              View all
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={FOREST}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <Text className="mb-3 ml-5 text-[12px]" style={{ color: MUTED }}>
+          Bargarh APMC • Sample prices
+        </Text>
+
+        <View className="flex-row gap-3">
+          <Rate
+            name="Paddy (Swarna)"
+            icon="grain"
+            price="₹2,203"
+            change="+₹45"
+          />
+          <Rate
+            name="Cotton"
+            icon="leaf"
+            price="₹7,120"
+            change="+₹120"
+          />
+        </View>
+      </Card>
+
+      <MandiRatesPopup
+        visible={popupVisible}
+        onClose={() => setPopupVisible(false)}
+      />
+    </>
   );
 }
+
 
 /* ----------------------------- Quick Services ---------------------------- */
 
@@ -232,28 +243,7 @@ const SERVICES: Service[] = [
     badgeBg: '#F1EEE6',
     badgeColor: MUTED,
   },
-  {
-    title: 'Agri Store',
-    subtitle: 'Seeds, Fertilizers, Tools',
-    badge: 'Offers',
-    icon: 'storefront-outline',
-    route: '/store',
-    tint: '#FCE3CF',
-    iconColor: '#C2571A',
-    badgeBg: '#FCE3CF',
-    badgeColor: '#C2571A',
-  },
-  {
-    title: 'Mandi Rates',
-    subtitle: 'Live market prices',
-    badge: 'Live',
-    icon: 'trending-up',
-    route: '/mandi',
-    tint: '#DDF0DD',
-    iconColor: LEAF,
-    badgeBg: '#DDF0DD',
-    badgeColor: LEAF,
-  },
+ 
   {
     title: 'Govt Schemes',
     subtitle: 'PM-Kisan, KALIA, and more',
@@ -270,7 +260,7 @@ const SERVICES: Service[] = [
     subtitle: 'Chat & Voice call',
     badge: '24x7',
     icon: 'face-agent',
-    route: '/expert',
+    route: '/adviser',
     tint: '#FCE3CF',
     iconColor: '#C2571A',
     badgeBg: '#F1EEE6',
@@ -358,148 +348,10 @@ function QuickServices({ onNavigate }: { onNavigate?: (tab: TabKey) => void }) {
   );
 }
 
-/* ------------------------------ Today's Tasks ----------------------------- */
 
-type Task = {
-  id: string;
-  title: string;
-  tag: string;
-  tagBg: string;
-  tagColor: string;
-  time: string;
-  timeIcon: IconName;
-};
-
-const TASKS: Task[] = [
-  {
-    id: 't1',
-    title: 'Apply Nitrogen/Urea in Paddy (Plot 1)',
-    tag: 'Urgent • Before sunset',
-    tagBg: '#FDE2E0',
-    tagColor: '#C0261B',
-    time: '5:00 PM',
-    timeIcon: 'clock-outline',
-  },
-  {
-    id: 't2',
-    title: 'Irrigation for Vegetable Plot',
-    tag: 'Scheduled • 30 mins',
-    tagBg: '#DDF0DD',
-    tagColor: LEAF,
-    time: '4:00 PM',
-    timeIcon: 'water-outline',
-  },
-];
-
-function Tasks() {
-  const [done, setDone] = useState<Record<string, boolean>>({});
-  const pending = TASKS.filter((t) => !done[t.id]).length;
-
-  return (
-    <Card>
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <MaterialCommunityIcons name="check-circle-outline" size={24} color={LEAF} />
-          <Text className="ml-2 text-[18px] font-extrabold" style={{ color: INK }}>
-            Today's Tasks
-          </Text>
-        </View>
-        <View className="rounded-full bg-[#FEF0DA] px-3 py-1">
-          <Text className="text-[12px] font-bold" style={{ color: '#B26B00' }}>
-            {pending} Pending
-          </Text>
-        </View>
-      </View>
-
-      {TASKS.map((t) => {
-        const checked = !!done[t.id];
-        return (
-          <TouchableOpacity
-            key={t.id}
-            activeOpacity={0.85}
-            onPress={() => setDone((d) => ({ ...d, [t.id]: !d[t.id] }))}
-            className="mb-2 flex-row items-start rounded-2xl bg-[#F4F1EA] p-3"
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked }}
-          >
-            <View
-              className="mr-3 mt-0.5 h-6 w-6 items-center justify-center rounded-md border-2"
-              style={{
-                borderColor: checked ? LEAF : '#B9B4A5',
-                backgroundColor: checked ? LEAF : '#FFFFFF',
-              }}
-            >
-              {checked && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
-            </View>
-            <View className="flex-1">
-              <Text
-                className="text-[15px] font-bold"
-                style={{
-                  color: INK,
-                  textDecorationLine: checked ? 'line-through' : 'none',
-                  opacity: checked ? 0.5 : 1,
-                }}
-              >
-                {t.title}
-              </Text>
-              <View className="mt-1.5 flex-row items-center">
-                <View className="mr-2 rounded-md px-2 py-0.5" style={{ backgroundColor: t.tagBg }}>
-                  <Text className="text-[11px] font-bold" style={{ color: t.tagColor }}>
-                    {t.tag}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name={t.timeIcon} size={14} color={MUTED} />
-                <Text className="ml-1 text-[13px]" style={{ color: MUTED }}>
-                  {t.time}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </Card>
-  );
-}
 
 /* ------------------------------ Crop Advisory ----------------------------- */
 
-function Advisory() {
-  return (
-    <Card>
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={AMBER} />
-          <Text className="ml-2 text-[18px] font-extrabold" style={{ color: INK }}>
-            Today's Crop Advisory
-          </Text>
-        </View>
-        <RoundIconButton icon="volume-high" bg="#EFEBE0" color={MUTED} size={34} label="Read aloud" />
-      </View>
-
-      <View className="flex-row">
-        {/* TODO: replace with require('../../assets/paddy.jpg') */}
-        <View className="h-24 w-24 items-center justify-center rounded-2xl bg-[#DDF0DD]">
-          <MaterialCommunityIcons name="grass" size={44} color={LEAF} />
-        </View>
-        <View className="ml-3 flex-1">
-          <Text className="text-[16px] font-extrabold" style={{ color: INK }}>
-            Stem Borer & Leaf Yellowing Alert
-          </Text>
-          <Text className="mt-1 text-[13px] leading-[19px]" style={{ color: MUTED }}>
-            If slight yellowing appears on leaves, spray Neem oil solution (Azadirachtin 0.03%)
-            promptly.
-          </Text>
-          <TouchableOpacity className="mt-1.5 flex-row items-center">
-            <Text className="text-[14px] font-bold" style={{ color: FOREST }}>
-              Read full advisory
-            </Text>
-            <MaterialCommunityIcons name="arrow-right" size={16} color={FOREST} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Card>
-  );
-}
 
 /* -------------------------------- Helpline -------------------------------- */
 
@@ -546,8 +398,6 @@ export default function Home({ onNavigate }: { onNavigate?: (tab: TabKey) => voi
       <Weather />
       <MandiRates />
       <QuickServices onNavigate={onNavigate} />
-      <Tasks />
-      <Advisory />
       <Helpline />
     </ScrollView>
   );
