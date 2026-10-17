@@ -9,7 +9,7 @@ const FOREST = '#14532D';
 const MUTED = '#5E7365';
 const ACTIVE_PILL = '#DDF0DD'; // light green behind the active icon
 
-export type TabKey = 'home' | 'crops' | 'scan' | 'adviser' | 'profile';
+export type TabKey = 'home' | 'shop' | 'scan' | 'adviser' | 'profile';
 
 function NavItem({
   icon,
@@ -87,11 +87,11 @@ export default function FarmerBottomNav({
         onPress={() => onChange('home')}
       />
       <NavItem
-        icon="sprout-outline"
-        activeIcon="sprout"
-        label="My Crops"
-        active={active === 'crops'}
-        onPress={() => onChange('crops')}
+        icon="shopping-outline"
+        activeIcon="shopping"
+        label="Shop"
+        active={active === 'shop'}
+        onPress={() => onChange('shop')}
       />
 
       {/* Center AI Doctor button */}

@@ -25,7 +25,7 @@ const INK = '#1F2A24';
 
 // Routes that should switch the bottom-bar tab instead of opening a new page
 const TAB_ROUTES: Record<string, TabKey> = {
-  '/crops': 'crops',
+  '/shop': 'shop',
   '/scan': 'scan',
   '/adviser': 'adviser',
   '/profile': 'profile',

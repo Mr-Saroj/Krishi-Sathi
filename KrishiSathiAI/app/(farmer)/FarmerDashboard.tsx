@@ -6,7 +6,7 @@ import BottomNav, { TabKey } from '../../src/farmer/components/FarmerBottomNav';
 import FarmerTopbar from '../../src/farmer/components/FarmerTopbar';
 import AiDoctorScanner from './AiDoctorScanner';
 import Home from './home'; // dashboard middle part (move it out of app/ if it shows as its own screen)
-import MyCrops from './MyCrops';
+import MyCrops from './Shop';
 import AiAdviser from './AiAdviser';
 import Profile from './Profile';
 import useKeyboardVisible from '../../src/farmer/hooks/useKeyboardVisible';
@@ -49,7 +49,7 @@ export default function FarmerDashboard() {
           <Screen show={tab === 'home'}>
             <Home onNavigate={setTab} />
           </Screen>
-          <Screen show={tab === 'crops'}>
+          <Screen show={tab === 'shop'}>
             <MyCrops />
           </Screen>
           <Screen show={tab === 'adviser'}>
