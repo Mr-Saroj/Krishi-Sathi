@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -20,7 +21,9 @@ const MUTED = '#5E7365';
 const INK = '#1F2A24';
 
 type Category = {
-  id: string; name: string; icon: IconName,
+  id: string;
+  name: string;
+  icon: IconName;
   image?: ImageSourcePropType;
 };
 
@@ -37,40 +40,52 @@ type Product = {
 // TODO: replace all data below with your API / store
 const CATEGORIES: Category[] = [
   {
-    id: 'seeds', name: 'Seeds', icon: 'seed-outline',
-    image: require('../../assets/Images/seeds.avif')
+    id: 'seeds',
+    name: 'Seeds',
+    icon: 'seed-outline',
+    image: require('../../assets/Images/seeds.avif'),
   },
   {
-    id: 'tools', name: 'Farming Tools', icon: 'hammer-wrench',
-    image: require('../../assets/Images/tools.avif')
+    id: 'tools',
+    name: 'Farming Tools',
+    icon: 'hammer-wrench',
+    image: require('../../assets/Images/tools.avif'),
   },
   {
-    id: 'machinery', name: 'Farm Machinery & Equipment', icon: 'tractor',
-    image: require('../../assets/Images/machinery.avif')
+    id: 'machinery',
+    name: 'Farm Machinery & Equipment',
+    icon: 'tractor',
+    image: require('../../assets/Images/machinery.avif'),
   },
   {
-    id: 'fertilizer', name: 'Fertilizers', icon: 'bag-personal-outline',
-    image: require('../../assets/Images/fertilizer.avif')
+    id: 'fertilizer',
+    name: 'Fertilizers',
+    icon: 'bag-personal-outline',
+    image: require('../../assets/Images/fertilizer.avif'),
   },
   {
-    id: 'pesticide', name: 'Pesticides', icon: 'spray',
-    image: require('../../assets/Images/pesticide.jpg')
+    id: 'pesticide',
+    name: 'Pesticides',
+    icon: 'spray',
+    image: require('../../assets/Images/pesticide.jpg'),
   },
   {
-    id: 'irrigation', name: 'Irrigation', icon: 'water-pump',
-    image: require('../../assets/Images/irrigation.avif')
+    id: 'irrigation',
+    name: 'Irrigation',
+    icon: 'water-pump',
+    image: require('../../assets/Images/irrigation.avif'),
   },
   {
-    id: 'feed', name: 'Animal Feed', icon: 'cow',
-    image: require('../../assets/Images/feed.avif')
+    id: 'feed',
+    name: 'Animal Feed',
+    icon: 'cow',
+    image: require('../../assets/Images/feed.avif'),
   },
 ];
 
-// Local banner. You can also use remote banners: { uri: 'https://...' }
+// Trending banners. You can also use remote banners: { uri: 'https://...' }
 const BANNER_SEEDS = require('../../assets/Images/Trending1.png');
 const BANNER_RATIO = 3584 / 1184; // fallback width / height (Trending1.png)
-
-const BANNER_PROMO = require('../../assets/Images/Promotion1.png');
 
 type BannerItem = { id: string; source: ImageSourcePropType; label: string };
 
@@ -80,9 +95,9 @@ const TRENDING_BANNERS: BannerItem[] = [
   { id: 't3', source: BANNER_SEEDS, label: 'Hybrid seeds' },
 ];
 
-const OFFER_BANNERS: BannerItem[] = [
-  { id: 'o1', source: BANNER_PROMO, label: 'Offers and promotions' },
-];
+// Offers & Promotions video
+const PROMO_VIDEO = require('../../assets/Vedios/Promotion2.mp4');
+const PROMO_HEIGHT = 170; // change this number to make the video box taller or shorter
 
 const PRODUCTS: Product[] = [
   { id: 'p1', name: 'Swarna Paddy Seeds', category: 'Seeds', price: 450, unit: '5 kg', icon: 'grain' },
@@ -222,6 +237,29 @@ function BannerSlider({
   );
 }
 
+function PromoVideo({ width }: { width: number }) {
+  const player = useVideoPlayer(PROMO_VIDEO, (p) => {
+    p.loop = true; // repeat forever
+    p.muted = true; // no sound
+    p.play(); // start automatically
+  });
+
+  return (
+    <View
+      className="overflow-hidden rounded-3xl bg-[#EEF5EA]"
+      style={{ width, height: PROMO_HEIGHT }}
+    >
+      <VideoView
+        player={player}
+        style={{ width: '100%', height: '100%' }}
+        contentFit="cover"
+        nativeControls={false}
+        allowsPictureInPicture={false}
+      />
+    </View>
+  );
+}
+
 function ProductCard({ p, width }: { p: Product; width: number }) {
   const [failed, setFailed] = useState(false);
   return (
@@ -329,18 +367,15 @@ export default function Shop() {
         ))}
       </ScrollView>
 
+      {/* Offers & Promotions (autoplay video, muted) */}
+      <SectionTitle title="Offers & Promotions" />
+      <PromoVideo width={bannerWidth} />
+
       {/* Trending */}
       <SectionTitle title="Trending Products" />
       <BannerSlider items={TRENDING_BANNERS} width={bannerWidth} />
 
-      {/* Offers */}
-      <SectionTitle title="Offers & Promotions" />
-      <BannerSlider
-        items={OFFER_BANNERS}
-        width={bannerWidth}
-        heightScale={0.75}
-        resizeMode="cover"
-      />
+      
 
       {/* Recommended products (grid, 8+ items) */}
       <SectionTitle title="Recommended Products" action="See all" />
