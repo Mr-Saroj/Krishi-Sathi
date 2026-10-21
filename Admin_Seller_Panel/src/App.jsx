@@ -1,17 +1,6 @@
-import { useState } from 'react'
+import { RouterProvider } from "react-router-dom";
+import router from "./routes";
 
-import './App.css'
-import Home from './features/Landing/Home'
-
-
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-    <Home/>
-    </>
-  )
+export default function App() {
+  return <RouterProvider router={router} />;
 }
-
-export default App

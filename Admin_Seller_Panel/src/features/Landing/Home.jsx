@@ -472,21 +472,19 @@ const Footer = () => (
   </footer>
 );
 
+// src/pages/public/Home.jsx
+
 export default function Home() {
   return (
-    <div className="bg-surface font-body-md text-body-md text-on-surface antialiased">
-      <Header />
-      <main className="w-full pt-20 bg-surface">
-        <div className="flex flex-col w-full">
-          <Hero />
-          <Benefits />
-          <HowItWorks />
-          <Categories />
-          <Spotlight />
-          <CTA />
-        </div>
-      </main>
-      <Footer />
+    <div className="w-full pt-20 bg-surface">
+      <div className="flex flex-col w-full">
+        <Hero />
+        <Benefits />
+        <HowItWorks />
+        <Categories />
+        <Spotlight />
+        <CTA />
+      </div>
     </div>
   );
 }
