@@ -1,4 +1,4 @@
-
+// src/pages/public/Register.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -8,18 +8,21 @@ const steps = [
     { title: "Bank & Review", subtitle: "Payout setup" },
 ];
 
+// Pressed-in (inset) input; focus shows a green outline
 const inputClass =
-    "mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-4 focus:ring-green-100";
+    "neu-inset mt-2 w-full rounded-xl border-0 px-4 py-3 text-sm text-on-surface outline-none transition placeholder:text-outline focus:outline-2 focus:outline-offset-2 focus:outline-secondary/60";
 
 function Field({ label, required, hint, children }) {
     return (
         <div className="min-w-0">
-            <label className="text-sm font-semibold text-gray-700">
+            <label className="text-sm font-semibold text-primary">
                 {label}
-                {required && <span className="ml-1 text-red-500">*</span>}
+                {required && <span className="ml-1 text-error">*</span>}
             </label>
             {children}
-            {hint && <p className="mt-1.5 text-xs leading-5 text-gray-500">{hint}</p>}
+            {hint && (
+                <p className="mt-1.5 text-xs leading-5 text-on-surface-variant">{hint}</p>
+            )}
         </div>
     );
 }
@@ -57,15 +60,15 @@ function FileField({ label, name, onChange, hint }) {
 
     return (
         <Field label={label} hint={hint}>
-            <label className="mt-2 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3.5 transition hover:border-green-500 hover:bg-green-50/50">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100 text-xl text-green-800">
+            <label className="neu-inset-sm mt-2 flex cursor-pointer items-center gap-3 rounded-xl p-3.5 transition hover:text-secondary">
+                <span className="neu-raised-sm flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl text-secondary">
                     ↑
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-gray-700">
+                    <span className="block truncate text-sm font-semibold text-on-surface">
                         {fileName || "Choose document"}
                     </span>
-                    <span className="mt-1 block text-xs text-gray-500">
+                    <span className="mt-1 block text-xs text-on-surface-variant">
                         PDF, JPG or PNG
                     </span>
                 </span>
@@ -192,59 +195,58 @@ export default function Register() {
     };
 
     return (
-        <main className="min-h-screen bg-[#f6f8f3] px-4 pb-12 pt-12 sm:px-6 sm:pt-14 lg:pt-22">
+        <main className="min-h-screen bg-surface px-4 pb-12 pt-12 sm:px-6 sm:pt-14 lg:pt-22">
             <div className="mx-auto max-w-5xl">
-                {/* Compact page heading */}
-                <header className="mb-7 text-center sm:mb-8">
-                    <div className="mx-auto mb-3 flex items-center justify-center">
-                        <a href="/" className="flex items-center">
+                {/* Page heading */}
+                <header className="mb-8 text-center sm:mb-10">
+                    <div className="mx-auto mb-4 flex items-center justify-center">
+                        <a
+                            href="/"
+                            className="neu-raised flex h-20 w-20 items-center justify-center rounded-3xl"
+                        >
                             <img
                                 src="/dashboard_icon.png"
                                 alt="Krishi Sathi AI"
-                                className="h-15 w-15 object-contain"
+                                className="h-12 w-12 object-contain"
                             />
                         </a>
                     </div>
 
-                    
-
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                    <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">
                         Become a seller
                     </h1>
 
-                    <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 sm:text-base">
+                    <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-on-surface-variant sm:text-base">
                         Register your farming business and connect with more customers
                         through Krishi Sathi AI.
                     </p>
                 </header>
 
                 {/* Registration card */}
-                <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-900/[0.06] sm:rounded-3xl">
+                <section className="neu-raised overflow-hidden rounded-3xl">
                     {/* Stepper */}
-                    <div className="border-b border-gray-100 px-5 py-6 sm:px-10 sm:py-8">
+                    <div className="border-b border-primary/10 px-5 py-6 sm:px-10 sm:py-8">
                         <div className="mb-6 flex items-center justify-between gap-3">
                             <div>
-                                <p className="text-sm font-bold text-gray-900">
+                                <p className="text-sm font-bold text-primary">
                                     Seller registration
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-on-surface-variant">
                                     Complete all three steps to register.
                                 </p>
                             </div>
 
-                            <span className="shrink-0 rounded-full bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700">
+                            <span className="neu-inset-sm shrink-0 rounded-full px-4 py-1.5 text-xs font-bold text-secondary">
                                 Step {step + 1} of 3
                             </span>
                         </div>
 
-
-
-                        {/* Centered circular steps */}
+                        {/* Circular steps */}
                         <div className="relative grid grid-cols-3">
-                            {/* Connector line behind the circles */}
-                            <div className="absolute left-[16.66%] right-[16.66%] top-5 h-0.5 bg-gray-200">
+                            {/* Connector track (inset) with green progress */}
+                            <div className="neu-inset-sm absolute left-[16.66%] right-[16.66%] top-[17px] h-1.5 overflow-hidden rounded-full">
                                 <div
-                                    className="h-full bg-green-600 transition-all duration-500"
+                                    className="h-full rounded-full bg-secondary transition-all duration-500"
                                     style={{
                                         width: step === 0 ? "0%" : step === 1 ? "50%" : "100%",
                                     }}
@@ -270,12 +272,13 @@ export default function Register() {
                                         className="relative z-10 flex min-w-0 flex-col items-center text-center disabled:cursor-default"
                                     >
                                         <span
-                                            className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 ${active
-                                                    ? "scale-110 border-green-700 bg-green-700 text-white shadow-lg shadow-green-700/25 ring-4 ring-green-100"
+                                            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
+                                                active
+                                                    ? "neu-btn-primary scale-110"
                                                     : completed
-                                                        ? "border-green-600 bg-green-600 text-white"
-                                                        : "border-gray-200 bg-white text-gray-400"
-                                                }`}
+                                                    ? "neu-raised-sm text-secondary"
+                                                    : "neu-inset-sm text-outline"
+                                            }`}
                                         >
                                             {completed ? (
                                                 <svg
@@ -297,15 +300,16 @@ export default function Register() {
                                         </span>
 
                                         <span
-                                            className={`mt-3 max-w-full px-1 text-xs font-bold sm:text-sm ${active || completed
-                                                    ? "text-green-800"
-                                                    : "text-gray-500"
-                                                }`}
+                                            className={`mt-3 max-w-full px-1 text-xs font-bold sm:text-sm ${
+                                                active || completed
+                                                    ? "text-primary"
+                                                    : "text-on-surface-variant"
+                                            }`}
                                         >
                                             {item.title}
                                         </span>
 
-                                        <span className="mt-1 hidden text-xs text-gray-400 sm:block">
+                                        <span className="mt-1 hidden text-xs text-outline sm:block">
                                             {item.subtitle}
                                         </span>
                                     </button>
@@ -315,26 +319,23 @@ export default function Register() {
                     </div>
 
                     {/* Form content */}
-                    <form
-                        onSubmit={nextStep}
-                        className="px-5 py-7 sm:px-10 sm:py-9"
-                    >
+                    <form onSubmit={nextStep} className="px-5 py-7 sm:px-10 sm:py-9">
                         {/* STEP 1 */}
                         {step === 0 && (
                             <div>
                                 <div className="mb-6">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-green-700">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                         Step 01
                                     </span>
-                                    <h2 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                                    <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                         Account & identity
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                                         Enter your contact details and identity information.
                                     </p>
                                 </div>
 
-                                <div className="grid gap-x-5 gap-y-5 md:grid-cols-2">
+                                <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
                                     <TextField
                                         label="Full name"
                                         name="fullName"
@@ -408,18 +409,18 @@ export default function Register() {
                         {step === 1 && (
                             <div>
                                 <div className="mb-6">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-green-700">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                         Step 02
                                     </span>
-                                    <h2 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                                    <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                         Business details
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                                         Tell us about your business and order pickup location.
                                     </p>
                                 </div>
 
-                                <div className="grid gap-x-5 gap-y-5 md:grid-cols-2">
+                                <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
                                     <TextField
                                         label="Business / shop name"
                                         name="businessName"
@@ -541,33 +542,33 @@ export default function Register() {
                         {step === 2 && (
                             <div>
                                 <div className="mb-6">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-green-700">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                         Step 03
                                     </span>
-                                    <h2 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+                                    <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                         Bank details & review
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                                         Add your payout details and review your registration.
                                     </p>
                                 </div>
 
-                                <div className="mb-6 flex gap-3 rounded-2xl border border-green-100 bg-green-50 p-4">
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-lg">
+                                <div className="neu-inset mb-7 flex gap-3 rounded-2xl p-4">
+                                    <span className="neu-raised-sm flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
                                         🔒
                                     </span>
                                     <div>
-                                        <p className="text-sm font-bold text-green-900">
+                                        <p className="text-sm font-bold text-primary">
                                             Secure payout details
                                         </p>
-                                        <p className="mt-1 text-xs leading-5 text-green-800">
+                                        <p className="mt-1 text-xs leading-5 text-on-surface-variant">
                                             Bank details are needed before payouts. Your backend
                                             should protect sensitive information and restrict access.
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-x-5 gap-y-5 md:grid-cols-2">
+                                <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
                                     <TextField
                                         label="Account holder name"
                                         name="bankAccountName"
@@ -624,12 +625,12 @@ export default function Register() {
                                     </div>
                                 </div>
 
-                                <div className="mt-8 border-t border-gray-100 pt-6">
-                                    <h3 className="mb-4 text-base font-bold text-gray-900">
+                                <div className="mt-8 border-t border-primary/10 pt-6">
+                                    <h3 className="mb-4 text-base font-bold text-primary">
                                         Review your details
                                     </h3>
 
-                                    <div className="grid gap-4 rounded-2xl bg-gray-50 p-5 sm:grid-cols-2">
+                                    <div className="neu-inset grid gap-4 rounded-2xl p-5 sm:grid-cols-2">
                                         {[
                                             ["Full name", form.fullName],
                                             ["Mobile number", form.mobile],
@@ -644,20 +645,20 @@ export default function Register() {
                                             ["Bank account holder", form.bankAccountName],
                                         ].map(([label, value]) => (
                                             <div key={label} className="min-w-0">
-                                                <p className="text-xs text-gray-500">{label}</p>
-                                                <p className="mt-1 break-words text-sm font-semibold text-gray-800">
+                                                <p className="text-xs text-on-surface-variant">{label}</p>
+                                                <p className="mt-1 break-words text-sm font-semibold text-on-surface">
                                                     {value || "Not entered"}
                                                 </p>
                                             </div>
                                         ))}
                                     </div>
 
-                                    <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-6 text-gray-600">
+                                    <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm leading-6 text-on-surface-variant">
                                         <input
                                             type="checkbox"
                                             checked={accepted}
                                             onChange={(event) => setAccepted(event.target.checked)}
-                                            className="mt-1 h-4 w-4 accent-green-700"
+                                            className="mt-1 h-4 w-4 accent-secondary"
                                         />
                                         <span>
                                             I confirm that the information provided is accurate and
@@ -673,21 +674,20 @@ export default function Register() {
                         {message && (
                             <div
                                 role="status"
-                                className={`mt-6 rounded-xl border px-4 py-3 text-sm ${success
-                                        ? "border-green-200 bg-green-50 text-green-800"
-                                        : "border-amber-200 bg-amber-50 text-amber-800"
-                                    }`}
+                                className={`neu-inset mt-6 rounded-xl px-4 py-3 text-sm font-medium ${
+                                    success ? "text-secondary" : "text-error"
+                                }`}
                             >
                                 {message}
                             </div>
                         )}
 
                         {/* Bottom navigation */}
-                        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="mt-8 flex flex-col-reverse gap-4 border-t border-primary/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
                             {step === 0 ? (
                                 <Link
                                     to="/"
-                                    className="rounded-xl px-5 py-3 text-center text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                                    className="neu-btn rounded-xl px-5 py-3 text-center text-sm font-semibold text-on-surface-variant"
                                 >
                                     ← Back to home
                                 </Link>
@@ -695,7 +695,7 @@ export default function Register() {
                                 <button
                                     type="button"
                                     onClick={previousStep}
-                                    className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+                                    className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold text-on-surface"
                                 >
                                     ← Previous
                                 </button>
@@ -703,7 +703,7 @@ export default function Register() {
 
                             <button
                                 type="submit"
-                                className="rounded-xl bg-green-800 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-green-900/15 transition hover:bg-green-900 focus:outline-none focus:ring-4 focus:ring-green-200"
+                                className="neu-btn-primary rounded-xl px-7 py-3 text-sm font-bold"
                             >
                                 {step === 2 ? "Submit registration →" : "Continue →"}
                             </button>
@@ -711,11 +711,11 @@ export default function Register() {
                     </form>
                 </section>
 
-                <p className="mt-5 text-center text-sm text-gray-500">
+                <p className="mt-6 text-center text-sm text-on-surface-variant">
                     Already have a seller account?{" "}
                     <Link
                         to="/login"
-                        className="font-semibold text-green-800 hover:underline"
+                        className="font-semibold text-secondary hover:underline"
                     >
                         Sign in
                     </Link>

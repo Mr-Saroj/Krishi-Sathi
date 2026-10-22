@@ -1,6 +1,7 @@
 /**
- * Shared TopNavbar Utility Functions
+ * Shared TopNavbar Utility Functions (Neumorphic)
  * @file topNavbarUtils.js
+ * Requires the neu-* utilities from index.css.
  */
 
 // ─── String Helpers ───────────────────────────────────────────────────────────
@@ -27,11 +28,11 @@ export const getGreetingText = (firstName) => {
 // ─── Class Name Builders ──────────────────────────────────────────────────────
 
 export const getHeaderClasses = () => {
-  return 'sticky top-0 z-30 h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100/80 flex items-center justify-between px-4 md:px-6 lg:px-8 transition-all duration-300';
+  return 'sticky top-0 z-30 h-20 bg-surface shadow-[0_6px_16px_var(--neu-dark)] flex items-center justify-between px-4 md:px-6 lg:px-8 transition-all duration-300';
 };
 
 export const getHamburgerButtonClasses = () => {
-  return 'p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 hover:text-[#004ac6] hover:border-[#004ac6]/20 hover:bg-[#004ac6]/5 transition-all duration-200';
+  return 'neu-btn p-2.5 rounded-xl text-primary';
 };
 
 export const getHamburgerIconClasses = (isOpen) => {
@@ -41,14 +42,12 @@ export const getHamburgerIconClasses = (isOpen) => {
 };
 
 export const getSearchContainerClasses = () => {
-  return 'hidden xl:flex items-center bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 w-64';
+  return 'neu-inset hidden xl:flex items-center rounded-xl px-4 py-2.5 w-64';
 };
 
 export const getActionButtonClasses = () => {
-  return 'relative p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 hover:text-[#004ac6] hover:border-[#004ac6]/20 hover:bg-[#004ac6]/5 transition-all duration-200';
+  return 'neu-btn relative p-2.5 rounded-xl text-on-surface-variant hover:text-primary';
 };
 
 export const getAvatarClasses = () =>
-  "flex items-center justify-center w-10 h-10 rounded-full " +
-  "bg-green-100 text-green-800 border border-green-200 " +
-  "font-bold text-sm cursor-pointer";
+  'neu-btn-primary flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm cursor-pointer select-none';

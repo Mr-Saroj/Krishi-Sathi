@@ -1,0 +1,71 @@
+/* src/styles/neumorphism.css
+   Import AFTER your tailwind directives, e.g. in main.jsx:
+   import "./index.css";
+   import "./styles/neumorphism.css";
+   Uses your existing theme colors (surface, primary, on-primary). */
+
+@layer components {
+  /* Soft extruded surface */
+  .neu-raised {
+    @apply bg-surface;
+    box-shadow: 10px 10px 20px rgba(20, 83, 45, 0.16),
+      -10px -10px 20px rgba(255, 255, 255, 0.95);
+  }
+  .neu-raised-sm {
+    @apply bg-surface;
+    box-shadow: 5px 5px 10px rgba(20, 83, 45, 0.16),
+      -5px -5px 10px rgba(255, 255, 255, 0.95);
+  }
+
+  /* Pressed-in surface */
+  .neu-inset {
+    @apply bg-surface;
+    box-shadow: inset 6px 6px 12px rgba(20, 83, 45, 0.16),
+      inset -6px -6px 12px rgba(255, 255, 255, 0.95);
+  }
+  .neu-inset-sm {
+    @apply bg-surface;
+    box-shadow: inset 3px 3px 6px rgba(20, 83, 45, 0.16),
+      inset -3px -3px 6px rgba(255, 255, 255, 0.95);
+  }
+
+  /* Neutral button: raised -> pressed */
+  .neu-btn {
+    @apply bg-surface transition-all duration-200;
+    box-shadow: 6px 6px 12px rgba(20, 83, 45, 0.16),
+      -6px -6px 12px rgba(255, 255, 255, 0.95);
+  }
+  .neu-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 8px 8px 16px rgba(20, 83, 45, 0.2),
+      -8px -8px 16px rgba(255, 255, 255, 1);
+  }
+  .neu-btn:active {
+    transform: translateY(0);
+    box-shadow: inset 4px 4px 8px rgba(20, 83, 45, 0.18),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.95);
+  }
+
+  /* Primary (green) button */
+  .neu-btn-primary {
+    @apply bg-primary text-on-primary transition-all duration-200;
+    box-shadow: 6px 6px 14px rgba(20, 83, 45, 0.35),
+      -6px -6px 14px rgba(255, 255, 255, 0.95);
+  }
+  .neu-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 8px 8px 18px rgba(20, 83, 45, 0.42),
+      -8px -8px 18px rgba(255, 255, 255, 1);
+  }
+  .neu-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+      inset -3px -3px 6px rgba(255, 255, 255, 0.12);
+  }
+
+  /* Dark/green cards sitting on the light base */
+  .neu-dark {
+    box-shadow: 10px 10px 20px rgba(20, 83, 45, 0.3),
+      -10px -10px 20px rgba(255, 255, 255, 0.95);
+  }
+}

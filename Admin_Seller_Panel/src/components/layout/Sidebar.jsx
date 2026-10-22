@@ -1,4 +1,4 @@
-
+// src/components/layout/Sidebar.jsx
 import React, { useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 
@@ -39,9 +39,8 @@ const Sidebar = ({
       {/* Sidebar Container */}
       <aside className={getSidebarContainerClasses(sidebarOpen)}>
         <div className="flex h-full w-72 min-w-[18rem] flex-col overflow-hidden">
-
           {/* Logo, Brand Name and Close Button */}
-          <div className="flex h-20 shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4">
+          <div className="flex h-20 shrink-0 items-center justify-between gap-2 px-4">
             <NavLink
               to="/"
               end
@@ -49,13 +48,15 @@ const Sidebar = ({
               className="flex min-w-0 items-center"
               aria-label="Krishi Sathi AI home"
             >
-              <img
-                src="/dashboard_icon.png"
-                alt="Krishi Sathi AI"
-                className="h-10 w-10 shrink-0 object-contain"
-              />
+              <span className="neu-raised-sm flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">
+                <img
+                  src="/dashboard_icon.png"
+                  alt="Krishi Sathi AI"
+                  className="h-8 w-8 object-contain"
+                />
+              </span>
 
-              <span className="ml-2 text-[18px] leading-5 font-extrabold text-[#14532D]">
+              <span className="ml-3 text-[18px] leading-5 font-extrabold text-[#14532D]">
                 Krishi Sathi AI
               </span>
             </NavLink>
@@ -73,48 +74,36 @@ const Sidebar = ({
           </div>
 
           {/* Dashboard Label */}
-          <p className="shrink-0 px-6 pb-1 pt-4 text-xs font-medium tracking-wide text-slate-400">
+          <p className="shrink-0 px-6 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-secondary">
             {dashboardLabel}
           </p>
 
           {/* Main Navigation - Independently Scrollable */}
-          <nav className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-4">
+          <nav className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-5">
             {navLinks.map((link) => (
               <NavLink
                 key={link.label}
                 to={link.to}
                 end={link.end}
                 onClick={handleMobileClose}
-                className={({ isActive }) =>
-                  getNavLinkClasses(isActive)
-                }
+                className={({ isActive }) => getNavLinkClasses(isActive)}
               >
                 {({ isActive }) => (
                   <>
-                    {isActive && (
-                      <div className={getActiveIndicatorClasses()} />
-                    )}
+                    {isActive && <div className={getActiveIndicatorClasses()} />}
 
-                    <span className={getIconClasses(isActive)}>
-                      {link.icon}
-                    </span>
+                    <span className={getIconClasses(isActive)}>{link.icon}</span>
 
-                    <span className="flex-1 text-left">
-                      {link.label}
-                    </span>
+                    <span className="flex-1 text-left">{link.label}</span>
 
                     {/* Dynamic Count Badge */}
                     {link.showBadge && link.badgeCount > 0 && (
-                      <span className={getBadgeClasses()}>
-                        {link.badgeCount}
-                      </span>
+                      <span className={getBadgeClasses()}>{link.badgeCount}</span>
                     )}
 
                     {/* Static Badge */}
                     {link.badge && (
-                      <span className={getBadgeClasses()}>
-                        {link.badge}
-                      </span>
+                      <span className={getBadgeClasses()}>{link.badge}</span>
                     )}
                   </>
                 )}
@@ -123,7 +112,7 @@ const Sidebar = ({
           </nav>
 
           {/* Bottom Navigation - Always Visible */}
-          <div className="shrink-0 space-y-1 border-t border-slate-100 bg-white p-4">
+          <div className="shrink-0 space-y-2 border-t border-primary/10 bg-surface p-4">
             {bottomLinks.map((link) => {
               const content = (
                 <>
@@ -146,7 +135,7 @@ const Sidebar = ({
                       handleMobileClose();
                     }}
                     className={`flex w-full items-center gap-3 ${getBottomLinkClasses(
-                      link.isDanger
+                      link.isDanger !== false
                     )}`}
                   >
                     {content}

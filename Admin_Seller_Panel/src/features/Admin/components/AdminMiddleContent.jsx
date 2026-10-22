@@ -1,4 +1,4 @@
-
+// src/components/AdminMiddleContent.jsx
 import React from 'react';
 import {
   StatCard,
@@ -6,26 +6,21 @@ import {
   RecentOrders,
   DashboardAlerts,
 } from '../utils/middlecontentUtils';
-import PageLoader from '../../../components/common/PageLoader';
 import useMiddleContent from '../hooks/useMiddleContent';
 import AdminMiddleContentSkeleton from '../Skeliton/AdminMiddleContentSkeleton';
 
 const AdminMiddleContent = () => {
-  const {
-    loading,
-    error,
-    stats,
-    recentOrders,
-    salesData,
-    alerts,
-  } = useMiddleContent();
+  const { loading, error, stats, recentOrders, salesData, alerts } =
+    useMiddleContent();
 
   return (
     <div className="space-y-6 sm:space-y-8">
-
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div
+          role="alert"
+          className="neu-inset rounded-xl px-4 py-3 text-sm font-medium text-error"
+        >
           {error}
         </div>
       )}
@@ -33,15 +28,16 @@ const AdminMiddleContent = () => {
       {/* Dashboard Heading */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 sm:text-2xl">
+          <h1 className="text-xl font-extrabold text-primary sm:text-2xl">
             Marketplace Overview
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-on-surface-variant">
             Monitor orders, sellers, revenue, and platform activity.
           </p>
         </div>
 
-        <span className="mt-2 w-fit rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 sm:mt-0">
+        <span className="neu-inset-sm mt-3 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold text-secondary sm:mt-0">
+          <span className="h-2 w-2 rounded-full bg-secondary" />
           Live dashboard overview
         </span>
       </div>
@@ -51,12 +47,13 @@ const AdminMiddleContent = () => {
       ) : (
         <>
           {/* Main Statistics */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* colorClass is now a text colour only (icon well is inset) */}
+          <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total Sales"
               value={`₹${stats.totalSales.toLocaleString('en-IN')}`}
               icon="currency_rupee"
-              colorClass="bg-emerald-50 text-emerald-600"
+              colorClass="text-emerald-600"
               sub="SALES"
             />
 
@@ -64,7 +61,7 @@ const AdminMiddleContent = () => {
               label="Total Orders"
               value={stats.totalOrders.toLocaleString('en-IN')}
               icon="shopping_bag"
-              colorClass="bg-blue-50 text-blue-600"
+              colorClass="text-blue-600"
               sub="ORDERS"
             />
 
@@ -72,7 +69,7 @@ const AdminMiddleContent = () => {
               label="Total Sellers"
               value={stats.totalSellers.toLocaleString('en-IN')}
               icon="storefront"
-              colorClass="bg-violet-50 text-violet-600"
+              colorClass="text-violet-600"
               sub="SELLERS"
             />
 
@@ -80,7 +77,7 @@ const AdminMiddleContent = () => {
               label="Pending Approvals"
               value={stats.pendingSellers.toLocaleString('en-IN')}
               icon="pending_actions"
-              colorClass="bg-amber-50 text-amber-600"
+              colorClass="text-amber-600"
               sub="REVIEW"
             />
 
@@ -88,7 +85,7 @@ const AdminMiddleContent = () => {
               label="Active Products"
               value={stats.activeProducts.toLocaleString('en-IN')}
               icon="inventory_2"
-              colorClass="bg-cyan-50 text-cyan-600"
+              colorClass="text-cyan-600"
               sub="PRODUCTS"
             />
 
@@ -96,7 +93,7 @@ const AdminMiddleContent = () => {
               label="Delivery Partners"
               value={stats.deliveryPartners.toLocaleString('en-IN')}
               icon="local_shipping"
-              colorClass="bg-orange-50 text-orange-600"
+              colorClass="text-orange-600"
               sub="DELIVERY"
             />
 
@@ -104,7 +101,7 @@ const AdminMiddleContent = () => {
               label="Platform Commission"
               value={`₹${stats.commissionRevenue.toLocaleString('en-IN')}`}
               icon="account_balance_wallet"
-              colorClass="bg-green-50 text-green-700"
+              colorClass="text-secondary"
               sub="REVENUE"
             />
 
@@ -112,7 +109,7 @@ const AdminMiddleContent = () => {
               label="Pending Orders"
               value={stats.pendingOrders.toLocaleString('en-IN')}
               icon="hourglass_top"
-              colorClass="bg-rose-50 text-rose-600"
+              colorClass="text-rose-600"
               sub="ACTION"
             />
           </section>

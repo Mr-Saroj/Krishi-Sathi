@@ -1,3 +1,4 @@
+// src/components/layout/TopNavbar.jsx
 import React from 'react';
 
 import {
@@ -16,36 +17,35 @@ const TopNavbar = ({
   setSidebarOpen,
   subtitle,
   actionButton,
+  userName = '', // optional: pass the logged-in user's name
 }) => {
-  const {
-    initials,
-    avatarTitle,
-    greeting,
-    toggleSidebar,
-  } = useTopNavbar(sidebarOpen, setSidebarOpen);
+  const { initials, avatarTitle, greeting, toggleSidebar } = useTopNavbar(
+    sidebarOpen,
+    setSidebarOpen,
+    userName
+  );
 
   return (
     <header className={getHeaderClasses()}>
-
       {/* Left: Hamburger + Greeting */}
       <div className="flex items-center gap-3 md:gap-4">
         <button
+          type="button"
           onClick={toggleSidebar}
           className={getHamburgerButtonClasses()}
           title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          <span className={getHamburgerIconClasses(sidebarOpen)}>
-            menu_open
-          </span>
+          <span className={getHamburgerIconClasses(sidebarOpen)}>menu_open</span>
         </button>
 
         <div className="hidden sm:block">
-          <h1 className="text-lg lg:text-xl font-bold text-slate-800">
+          <h1 className="text-lg font-bold text-primary lg:text-xl">
             {greeting}
           </h1>
 
           {subtitle && (
-            <p className="hidden lg:block text-sm text-slate-400">
+            <p className="hidden text-sm text-on-surface-variant lg:block">
               {subtitle}
             </p>
           )}
@@ -53,18 +53,17 @@ const TopNavbar = ({
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 md:gap-4">
-
+      <div className="flex items-center gap-3 md:gap-4">
         {/* Search */}
         <div className={getSearchContainerClasses()}>
-          <span className="material-symbols-outlined text-slate-400 text-[20px] mr-2">
+          <span className="material-symbols-outlined mr-2 text-[20px] text-outline">
             search
           </span>
 
           <input
             type="text"
             placeholder="Search..."
-            className="bg-transparent outline-none text-sm text-slate-600 w-full placeholder-slate-400"
+            className="w-full bg-transparent text-sm text-on-surface outline-none placeholder:text-outline"
           />
         </div>
 
@@ -73,6 +72,7 @@ const TopNavbar = ({
           type="button"
           className={getActionButtonClasses()}
           title="Notifications"
+          aria-label="Notifications"
         >
           <span className="material-symbols-outlined text-[22px]">
             notifications
@@ -83,10 +83,7 @@ const TopNavbar = ({
         {actionButton}
 
         {/* Avatar */}
-        <div
-          title={avatarTitle}
-          className={getAvatarClasses()}
-        >
+        <div title={avatarTitle} className={getAvatarClasses()}>
           {initials}
         </div>
       </div>

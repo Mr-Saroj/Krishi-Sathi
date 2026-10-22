@@ -1,6 +1,10 @@
-
+// src/pages/public/Login.jsx
 import { Link } from "react-router-dom";
 import { useState } from "react";
+
+// Pressed-in (inset) input; focus shows a green outline
+const inputClass =
+  "neu-inset w-full rounded-xl border-0 px-4 py-3 text-sm text-on-surface outline-none transition placeholder:text-outline focus:outline-2 focus:outline-offset-2 focus:outline-secondary/60";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -54,41 +58,43 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-[70vh] items-center justify-center bg-[#f6f8f3] px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+    <main className="flex min-h-[70vh] items-center justify-center bg-surface px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
       {/* Centered Login Form */}
-      <section className="mx-auto mt-10 w-full max-w-md">
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl shadow-gray-900/[0.06] sm:p-9">
+      <section className="mx-auto mt-8 w-full max-w-md">
+        <div className="neu-raised rounded-3xl p-6 sm:p-9">
           {/* Logo */}
-          <div className="mb-5 flex justify-center">
-            <img
-              src="/dashboard_icon.png"
-              alt="Krishi Sathi AI"
-              className="h-14 w-14 object-contain"
-            />
+          <div className="mb-6 flex justify-center">
+            <div className="neu-inset flex h-20 w-20 items-center justify-center rounded-full">
+              <img
+                src="/dashboard_icon.png"
+                alt="Krishi Sathi AI"
+                className="h-12 w-12 object-contain"
+              />
+            </div>
           </div>
 
           {/* Heading */}
           <div className="mb-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-green-700">
+            <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
               Welcome back
             </p>
 
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-primary">
               Sign in to your account
             </h1>
 
-            <p className="mt-3 text-sm leading-6 text-gray-500">
+            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
               Enter your details to continue to Krishi Sathi AI.
             </p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
               <label
                 htmlFor="email"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                className="mb-2 block text-sm font-semibold text-primary"
               >
                 Email address
               </label>
@@ -102,7 +108,7 @@ export default function Login() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:bg-white focus:ring-4 focus:ring-green-100"
+                className={inputClass}
               />
             </div>
 
@@ -111,14 +117,14 @@ export default function Login() {
               <div className="mb-2 flex items-center justify-between gap-3">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-semibold text-gray-700"
+                  className="block text-sm font-semibold text-primary"
                 >
                   Password
                 </label>
 
                 <Link
                   to="/forgot-password"
-                  className="text-sm font-medium text-green-700 transition hover:text-green-800 hover:underline"
+                  className="text-sm font-medium text-secondary transition hover:text-primary hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -134,14 +140,14 @@ export default function Login() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-20 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:bg-white focus:ring-4 focus:ring-green-100"
+                  className={`${inputClass} pr-20`}
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-3 text-sm font-medium text-gray-500 hover:text-green-700"
+                  className="absolute inset-y-0 right-3 text-sm font-medium text-on-surface-variant transition hover:text-secondary"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -152,7 +158,7 @@ export default function Login() {
             {error && (
               <p
                 role="alert"
-                className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+                className="neu-inset-sm rounded-xl px-4 py-3 text-sm font-medium text-error"
               >
                 {error}
               </p>
@@ -162,7 +168,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="neu-btn-primary flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign in"}
               {!loading && <span className="ml-2">→</span>}
@@ -170,12 +176,12 @@ export default function Login() {
           </form>
 
           {/* Register Link */}
-          <div className="mt-7 border-t border-gray-100 pt-6 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-8 border-t border-primary/10 pt-6 text-center">
+            <p className="text-sm text-on-surface-variant">
               Don't have an account?{" "}
               <Link
                 to="/register"
-                className="font-semibold text-green-700 hover:text-green-800 hover:underline"
+                className="font-semibold text-secondary hover:text-primary hover:underline"
               >
                 Create account
               </Link>
@@ -184,15 +190,16 @@ export default function Login() {
         </div>
 
         {/* Terms and Privacy */}
-        <p className="mt-5 text-center text-xs leading-5 text-gray-500">
+        <p className="mt-6 text-center text-xs leading-5 text-on-surface-variant">
           By signing in, you agree to our{" "}
-          <Link to="/terms" className="underline hover:text-green-700">
+          <Link to="/terms" className="underline hover:text-secondary">
             Terms
           </Link>{" "}
           and{" "}
-          <Link to="/privacy" className="underline hover:text-green-700">
+          <Link to="/privacy" className="underline hover:text-secondary">
             Privacy Policy
-          </Link>.
+          </Link>
+          .
         </p>
       </section>
     </main>

@@ -15,7 +15,7 @@ export const ADMIN_NAV_LINKS = [
   {
     icon: 'inventory_2',
     label: 'Product Management',
-    to: '/admin-dashboard/products',
+    to: '/admin-dashboard/product',
   },
   {
     icon: 'shopping_cart',
@@ -25,7 +25,7 @@ export const ADMIN_NAV_LINKS = [
   {
     icon: 'local_shipping',
     label: 'Delivery Partners',
-    to: '/admin-dashboard/delivery-partners',
+    to: '/admin-dashboard/delivery-management',
   },
   {
     icon: 'groups',

@@ -1,4 +1,5 @@
-
+// src/utils/middlecontentUtils.js
+// Neumorphic version. Requires the neu-* utilities from index.css.
 import React from 'react';
 
 const h = React.createElement;
@@ -6,54 +7,42 @@ const h = React.createElement;
 // Skeleton
 export const Skeleton = ({ className = '' }) =>
   h('span', {
-    className: `inline-block animate-pulse rounded bg-slate-100 ${className}`,
+    className: `inline-block animate-pulse rounded bg-outline-variant/40 ${className}`,
   });
 
 // Stat Card
-export const StatCard = ({
-  label,
-  value,
-  icon,
-  colorClass,
-  sub,
-}) =>
+// NOTE: colorClass should now be a TEXT colour only (e.g. "text-emerald-600"),
+// because the icon well is an inset neumorphic surface.
+export const StatCard = ({ label, value, icon, colorClass, sub }) =>
   h(
     'div',
     {
       className:
-        'group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-5',
+        'neu-raised group rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 sm:p-5',
     },
     h(
       'div',
       { className: 'mb-4 flex items-start justify-between' },
       h(
         'div',
-        { className: `rounded-xl p-3 ${colorClass}` },
-        h(
-          'span',
-          { className: 'material-symbols-outlined text-2xl' },
-          icon
-        )
+        { className: `neu-inset flex rounded-xl p-3 ${colorClass}` },
+        h('span', { className: 'material-symbols-outlined text-2xl' }, icon)
       ),
       h(
         'span',
         {
           className:
-            'rounded-full border border-slate-100 bg-slate-50 px-2 py-1 text-[10px] font-bold tracking-wider text-slate-400',
+            'neu-inset-sm rounded-full px-3 py-1 text-[10px] font-bold tracking-wider text-on-surface-variant',
         },
         sub
       )
     ),
-    h(
-      'p',
-      { className: 'text-sm font-medium text-slate-500' },
-      label
-    ),
+    h('p', { className: 'text-sm font-medium text-on-surface-variant' }, label),
     h(
       'p',
       {
         className:
-          'mt-1 break-words text-2xl font-extrabold tracking-tight text-slate-800',
+          'mt-1 break-words text-2xl font-extrabold tracking-tight text-primary',
       },
       value
     )
@@ -61,34 +50,21 @@ export const StatCard = ({
 
 // Sales Chart
 export const SalesChart = ({ data = [] }) => {
-  const maxSales = Math.max(
-    ...data.map((item) => item.sales),
-    1
-  );
+  const maxSales = Math.max(...data.map((item) => item.sales), 1);
 
   return h(
     'section',
-    {
-      className:
-        'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6',
-    },
+    { className: 'neu-raised rounded-2xl p-4 sm:p-6' },
     h(
       'div',
-      {
-        className:
-          'mb-6 flex flex-wrap items-center justify-between gap-3',
-      },
+      { className: 'mb-6 flex flex-wrap items-center justify-between gap-3' },
       h(
         'div',
         null,
-        h(
-          'h2',
-          { className: 'font-bold text-slate-800 sm:text-lg' },
-          'Sales Overview'
-        ),
+        h('h2', { className: 'font-bold text-primary sm:text-lg' }, 'Sales Overview'),
         h(
           'p',
-          { className: 'mt-1 text-xs text-slate-400' },
+          { className: 'mt-1 text-xs text-on-surface-variant' },
           'Daily sales performance'
         )
       ),
@@ -96,17 +72,14 @@ export const SalesChart = ({ data = [] }) => {
         'span',
         {
           className:
-            'rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700',
+            'neu-inset-sm rounded-lg px-3 py-2 text-xs font-semibold text-secondary',
         },
         'Last 7 days'
       )
     ),
     h(
       'div',
-      {
-        className:
-          'flex h-52 items-end gap-2 sm:h-64 sm:gap-5',
-      },
+      { className: 'flex h-56 items-end gap-2 sm:h-72 sm:gap-5' },
       data.map((item) =>
         h(
           'div',
@@ -117,27 +90,22 @@ export const SalesChart = ({ data = [] }) => {
           },
           h(
             'span',
-            {
-              className:
-                'hidden text-[10px] text-slate-500 sm:block',
-            },
+            { className: 'hidden text-[10px] text-on-surface-variant sm:block' },
             `₹${(item.sales / 1000).toFixed(1)}k`
           ),
+          // Inset track with a green bar inside
           h(
             'div',
             {
               className:
-                'flex h-full w-full items-end justify-center',
+                'neu-inset-sm flex h-full w-full max-w-12 items-end rounded-full p-1',
             },
             h('div', {
               title: `${item.day}: ₹${item.sales.toLocaleString('en-IN')}`,
               className:
-                'w-full max-w-12 rounded-t-lg bg-emerald-500 transition-all duration-300 hover:bg-emerald-600',
+                'w-full rounded-full bg-secondary shadow-[2px_2px_5px_var(--neu-dark)] transition-all duration-300 hover:bg-primary-container',
               style: {
-                height: `${Math.max(
-                  (item.sales / maxSales) * 100,
-                  3
-                )}%`,
+                height: `${Math.max((item.sales / maxSales) * 100, 4)}%`,
               },
             })
           ),
@@ -145,7 +113,7 @@ export const SalesChart = ({ data = [] }) => {
             'span',
             {
               className:
-                'text-[10px] font-medium text-slate-400 sm:text-xs',
+                'text-[10px] font-medium text-on-surface-variant sm:text-xs',
             },
             item.day
           )
@@ -155,40 +123,33 @@ export const SalesChart = ({ data = [] }) => {
   );
 };
 
-// Order status styles
+// Order status styles (text colour only; the chip itself is inset)
 const statusClasses = {
-  PLACED: 'bg-blue-50 text-blue-700',
-  CONFIRMED: 'bg-violet-50 text-violet-700',
-  SHIPPED: 'bg-amber-50 text-amber-700',
-  DELIVERED: 'bg-emerald-50 text-emerald-700',
-  CANCELLED: 'bg-red-50 text-red-700',
+  PLACED: 'text-blue-700',
+  CONFIRMED: 'text-violet-700',
+  SHIPPED: 'text-amber-700',
+  DELIVERED: 'text-secondary',
+  CANCELLED: 'text-error',
 };
 
 // Recent Orders
 export const RecentOrders = ({ orders = [] }) =>
   h(
     'section',
-    {
-      className:
-        'overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm',
-    },
+    { className: 'neu-raised overflow-hidden rounded-2xl' },
     h(
       'div',
       {
         className:
-          'flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-6',
+          'flex items-center justify-between gap-3 border-b border-primary/10 px-4 py-4 sm:px-6',
       },
       h(
         'div',
         null,
-        h(
-          'h2',
-          { className: 'font-bold text-slate-800 sm:text-lg' },
-          'Recent Orders'
-        ),
+        h('h2', { className: 'font-bold text-primary sm:text-lg' }, 'Recent Orders'),
         h(
           'p',
-          { className: 'mt-1 text-xs text-slate-400' },
+          { className: 'mt-1 text-xs text-on-surface-variant' },
           'Latest marketplace transactions'
         )
       ),
@@ -197,7 +158,7 @@ export const RecentOrders = ({ orders = [] }) =>
         {
           href: '/admin-dashboard/orders',
           className:
-            'shrink-0 text-xs font-semibold text-emerald-700 hover:underline',
+            'neu-btn shrink-0 rounded-lg px-4 py-2 text-xs font-semibold text-secondary',
         },
         'View all'
       )
@@ -207,77 +168,49 @@ export const RecentOrders = ({ orders = [] }) =>
       { className: 'overflow-x-auto' },
       h(
         'table',
-        {
-          className:
-            'w-full min-w-[700px] text-left text-sm',
-        },
+        { className: 'w-full min-w-[700px] text-left text-sm' },
         h(
           'thead',
-          {
-            className:
-              'bg-slate-50 text-xs uppercase tracking-wide text-slate-400',
-          },
+          { className: 'text-xs uppercase tracking-wide text-outline' },
           h(
             'tr',
             null,
-            ...[
-              'Order ID',
-              'Farmer',
-              'Seller',
-              'Amount',
-              'Status',
-              'Date',
-            ].map((heading) =>
-              h(
-                'th',
-                {
-                  key: heading,
-                  className: 'px-6 py-3',
-                },
-                heading
-              )
+            ...['Order ID', 'Farmer', 'Seller', 'Amount', 'Status', 'Date'].map(
+              (heading) =>
+                h('th', { key: heading, className: 'px-6 py-3 font-semibold' }, heading)
             )
           )
         ),
         h(
           'tbody',
-          { className: 'divide-y divide-slate-100' },
+          { className: 'divide-y divide-primary/10' },
           ...orders.map((order) =>
             h(
               'tr',
-              {
-                key: order.id,
-                className: 'hover:bg-slate-50/70',
-              },
+              { key: order.id, className: 'transition-colors hover:bg-primary/5' },
               h(
                 'td',
                 {
                   className:
-                    'whitespace-nowrap px-6 py-4 font-semibold text-slate-700',
+                    'whitespace-nowrap px-6 py-4 font-semibold text-primary',
                 },
                 order.id
               ),
               h(
                 'td',
-                {
-                  className:
-                    'whitespace-nowrap px-6 py-4 text-slate-600',
-                },
+                { className: 'whitespace-nowrap px-6 py-4 text-on-surface-variant' },
                 order.farmer
               ),
               h(
                 'td',
-                {
-                  className:
-                    'whitespace-nowrap px-6 py-4 text-slate-600',
-                },
+                { className: 'whitespace-nowrap px-6 py-4 text-on-surface-variant' },
                 order.seller
               ),
               h(
                 'td',
                 {
                   className:
-                    'whitespace-nowrap px-6 py-4 font-semibold text-slate-700',
+                    'whitespace-nowrap px-6 py-4 font-semibold text-on-surface',
                 },
                 `₹${order.amount.toLocaleString('en-IN')}`
               ),
@@ -287,9 +220,8 @@ export const RecentOrders = ({ orders = [] }) =>
                 h(
                   'span',
                   {
-                    className: `whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                      statusClasses[order.status] ||
-                      'bg-slate-100 text-slate-600'
+                    className: `neu-inset-sm whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold ${
+                      statusClasses[order.status] || 'text-on-surface-variant'
                     }`,
                   },
                   order.status
@@ -297,10 +229,7 @@ export const RecentOrders = ({ orders = [] }) =>
               ),
               h(
                 'td',
-                {
-                  className:
-                    'whitespace-nowrap px-6 py-4 text-xs text-slate-400',
-                },
+                { className: 'whitespace-nowrap px-6 py-4 text-xs text-outline' },
                 order.date
               )
             )
@@ -313,8 +242,7 @@ export const RecentOrders = ({ orders = [] }) =>
                   'td',
                   {
                     colSpan: 6,
-                    className:
-                      'px-6 py-10 text-center text-slate-400',
+                    className: 'px-6 py-10 text-center text-outline',
                   },
                   'No recent orders found.'
                 )
@@ -325,48 +253,37 @@ export const RecentOrders = ({ orders = [] }) =>
     )
   );
 
-// Alert colors
+// Alert icon colours (text only; the icon well is raised)
 const alertClasses = {
-  amber: 'bg-amber-50 text-amber-600',
-  blue: 'bg-blue-50 text-blue-600',
-  orange: 'bg-orange-50 text-orange-600',
+  amber: 'text-amber-600',
+  blue: 'text-blue-600',
+  orange: 'text-orange-600',
 };
 
 // Dashboard Alerts
 export const DashboardAlerts = ({ alerts = [] }) =>
   h(
     'section',
-    {
-      className:
-        'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6',
-    },
+    { className: 'neu-raised rounded-2xl p-4 sm:p-6' },
     h(
       'div',
       { className: 'mb-5' },
-      h(
-        'h2',
-        { className: 'font-bold text-slate-800 sm:text-lg' },
-        'Marketplace Alerts'
-      ),
+      h('h2', { className: 'font-bold text-primary sm:text-lg' }, 'Marketplace Alerts'),
       h(
         'p',
-        { className: 'mt-1 text-xs text-slate-400' },
+        { className: 'mt-1 text-xs text-on-surface-variant' },
         'Items that may require admin attention'
       )
     ),
     h(
       'div',
-      {
-        className:
-          'grid grid-cols-1 gap-3 lg:grid-cols-3',
-      },
+      { className: 'grid grid-cols-1 gap-5 lg:grid-cols-3' },
       ...alerts.map((alert) =>
         h(
           'div',
           {
             key: alert.id,
-            className:
-              'flex flex-col rounded-xl border border-slate-100 p-4',
+            className: 'neu-inset flex flex-col rounded-xl p-4',
           },
           h(
             'div',
@@ -374,31 +291,19 @@ export const DashboardAlerts = ({ alerts = [] }) =>
             h(
               'div',
               {
-                className: `rounded-lg p-2 ${
-                  alertClasses[alert.color] ||
-                  'bg-slate-100 text-slate-600'
+                className: `neu-raised-sm flex shrink-0 rounded-lg p-2 ${
+                  alertClasses[alert.color] || 'text-on-surface-variant'
                 }`,
               },
-              h(
-                'span',
-                { className: 'material-symbols-outlined' },
-                alert.icon
-              )
+              h('span', { className: 'material-symbols-outlined' }, alert.icon)
             ),
             h(
               'div',
               { className: 'min-w-0' },
-              h(
-                'h3',
-                { className: 'text-sm font-bold text-slate-800' },
-                alert.title
-              ),
+              h('h3', { className: 'text-sm font-bold text-primary' }, alert.title),
               h(
                 'p',
-                {
-                  className:
-                    'mt-1 text-xs leading-5 text-slate-500',
-                },
+                { className: 'mt-1 text-xs leading-5 text-on-surface-variant' },
                 alert.description
               )
             )
@@ -408,7 +313,7 @@ export const DashboardAlerts = ({ alerts = [] }) =>
             {
               href: alert.link,
               className:
-                'mt-4 text-xs font-semibold text-emerald-700 hover:underline',
+                'mt-4 w-fit text-xs font-semibold text-secondary hover:text-primary hover:underline',
             },
             `${alert.action} →`
           )
