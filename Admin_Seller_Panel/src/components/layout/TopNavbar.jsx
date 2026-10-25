@@ -17,7 +17,7 @@ const TopNavbar = ({
   setSidebarOpen,
   subtitle,
   actionButton,
-  userName = '', // optional: pass the logged-in user's name
+  userName = 'Guest',
 }) => {
   const { initials, avatarTitle, greeting, toggleSidebar } = useTopNavbar(
     sidebarOpen,

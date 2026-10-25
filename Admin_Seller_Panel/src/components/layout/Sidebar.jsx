@@ -1,6 +1,9 @@
-// src/components/layout/Sidebar.jsx
-import React, { useCallback } from 'react';
-import { NavLink } from 'react-router-dom';
+
+ // src/components/layout/Sidebar.jsx
+import React, { useCallback, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+
+import api from '../../services/api';
 
 import {
   getBackdropClasses,
@@ -22,11 +25,44 @@ const Sidebar = ({
   bottomLinks = [],
   dashboardLabel,
 }) => {
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const handleMobileClose = useCallback(() => {
     if (isMobileView(DESKTOP_BREAKPOINT)) {
       setSidebarOpen(false);
     }
   }, [setSidebarOpen]);
+
+  const handleLogout = async (link) => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      // Ask Spring Boot to clear the HttpOnly accessToken cookie.
+      await api.post('/auth/logout');
+
+      // Run any optional callback supplied by the parent.
+      link.onClick?.();
+
+      // Close the sidebar on mobile.
+      handleMobileClose();
+
+      // Navigate to login after successful logout.
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+
+      // Do not claim logout succeeded if the server did not clear
+      // the cookie. Keep the user on the current page.
+      window.alert(
+        'Unable to log out because the server could not be reached. Please try again.'
+      );
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -39,6 +75,7 @@ const Sidebar = ({
       {/* Sidebar Container */}
       <aside className={getSidebarContainerClasses(sidebarOpen)}>
         <div className="flex h-full w-72 min-w-[18rem] flex-col overflow-hidden">
+
           {/* Logo, Brand Name and Close Button */}
           <div className="flex h-20 shrink-0 items-center justify-between gap-2 px-4">
             <NavLink
@@ -78,7 +115,7 @@ const Sidebar = ({
             {dashboardLabel}
           </p>
 
-          {/* Main Navigation - Independently Scrollable */}
+          {/* Main Navigation */}
           <nav className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-5">
             {navLinks.map((link) => (
               <NavLink
@@ -86,24 +123,36 @@ const Sidebar = ({
                 to={link.to}
                 end={link.end}
                 onClick={handleMobileClose}
-                className={({ isActive }) => getNavLinkClasses(isActive)}
+                className={({ isActive }) =>
+                  getNavLinkClasses(isActive)
+                }
               >
                 {({ isActive }) => (
                   <>
-                    {isActive && <div className={getActiveIndicatorClasses()} />}
+                    {isActive && (
+                      <div className={getActiveIndicatorClasses()} />
+                    )}
 
-                    <span className={getIconClasses(isActive)}>{link.icon}</span>
+                    <span className={getIconClasses(isActive)}>
+                      {link.icon}
+                    </span>
 
-                    <span className="flex-1 text-left">{link.label}</span>
+                    <span className="flex-1 text-left">
+                      {link.label}
+                    </span>
 
                     {/* Dynamic Count Badge */}
                     {link.showBadge && link.badgeCount > 0 && (
-                      <span className={getBadgeClasses()}>{link.badgeCount}</span>
+                      <span className={getBadgeClasses()}>
+                        {link.badgeCount}
+                      </span>
                     )}
 
                     {/* Static Badge */}
                     {link.badge && (
-                      <span className={getBadgeClasses()}>{link.badge}</span>
+                      <span className={getBadgeClasses()}>
+                        {link.badge}
+                      </span>
                     )}
                   </>
                 )}
@@ -111,7 +160,7 @@ const Sidebar = ({
             ))}
           </nav>
 
-          {/* Bottom Navigation - Always Visible */}
+          {/* Bottom Navigation */}
           <div className="shrink-0 space-y-2 border-t border-primary/10 bg-surface p-4">
             {bottomLinks.map((link) => {
               const content = (
@@ -120,7 +169,11 @@ const Sidebar = ({
                     {link.icon}
                   </span>
 
-                  <span>{link.label}</span>
+                  <span>
+                    {link.action === 'logout' && loggingOut
+                      ? 'Logging out...'
+                      : link.label}
+                  </span>
                 </>
               );
 
@@ -130,13 +183,11 @@ const Sidebar = ({
                   <button
                     key={link.label}
                     type="button"
-                    onClick={() => {
-                      link.onClick?.();
-                      handleMobileClose();
-                    }}
+                    disabled={loggingOut}
+                    onClick={() => handleLogout(link)}
                     className={`flex w-full items-center gap-3 ${getBottomLinkClasses(
                       link.isDanger !== false
-                    )}`}
+                    )} disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     {content}
                   </button>

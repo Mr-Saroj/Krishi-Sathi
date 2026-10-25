@@ -16,7 +16,9 @@ public class KrishiSathiBackendApplication {
 
         dotenv.entries().forEach(entry ->
                 System.setProperty(entry.getKey(), entry.getValue())
+                
         );
+        
 
         SpringApplication.run(KrishiSathiBackendApplication.class, args);
     }

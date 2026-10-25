@@ -41,7 +41,9 @@ public class SecurityConfig {
                         // Public authentication APIs
                         .requestMatchers(
                                 "/api/auth/register",
-                                "/api/auth/login"
+                                "/api/auth/login",
+                                "/api/auth/weblogin",
+                                "/api/auth/webRegister"
                         ).permitAll()
 
                         // Public disease prediction API, if intended

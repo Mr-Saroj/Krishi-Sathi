@@ -13,6 +13,9 @@ import HomeSkeleton from "../features/Landing/Skeleton/HomeSkeleton";
 // Authentication skeletons
 import RegisterSkeleton from "../features/Auth/Skeliton/RegisterSkeleton";
 import LoginSkeleton from "../features/Auth/Skeliton/LoginSkeleton";
+import ProtectedRoute from "../features/Auth/ProtectedRoute";
+
+
 
 
 // Auth part
@@ -43,42 +46,42 @@ const CustomerManagement = lazy(
   () => import("../features/Admin/components/CustomerManagement")
 );
 
+//Seller Dashboard part
+const SellerDashboardLayout = lazy(
+  () => import("../features/Seller/components/SellerDashboardLayout")
+);
+const SellerMiddleContent = lazy(
+  () => import("../features/Seller/components/SellerMiddleContent")
+);
+const SellerInventory = lazy(
+  () => import("../features/Seller/components/SellerInventory")
+);
+
 // 404 page (unavailable routes)
 const NotFound = lazy(() => import("../components/common/NotFound"));
 
 const router = createBrowserRouter([
-  // Public routes
   {
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <PublicLayout />
-      </Suspense>
-    ),
+    element: <PublicLayout />,
     children: [
       {
         path: "/",
         element: (
-          <Suspense fallback={<HomeSkeleton />}>
-            <Home />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/register",
-        element: (
-          <Suspense fallback={<RegisterSkeleton />}>
-            <Register />
+          <Suspense fallback={<PageLoader />}>
+            <ProtectedRoute />
           </Suspense>
         ),
       },
       {
         path: "/login",
-        element: (
-          <Suspense fallback={<LoginSkeleton />}>
-            <Login />
-          </Suspense>
-        ),
+        element: <Login />,
       },
+      {
+        path: "/register",
+        element: <Register />,
+      },
+
+
       // Any unknown public URL, e.g. /abc
       {
         path: "*",
@@ -91,33 +94,34 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Admin routes
+
+  // Admin routes - protected
   {
-    path: "/admin-dashboard",
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <AdminDashboardLayout />
-      </Suspense>
-    ),
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <AdminMiddleContent /> },
-      { path: "sellers", element: <SellerManagement /> },
-      { path: "product", element: <ProductManagement /> },
-      { path: "orders", element: <OrderManagement /> },
-      { path: "delivery-management", element: <DeliveryManagement /> },
-      { path: "finance", element: <FinanceCommission /> },
-      { path: "customers", element: <CustomerManagement /> },
-      // Unknown admin URL, e.g. /admin-dashboard/abc — shown inside the dashboard layout
+      {
+        path: "/admin-dashboard",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminDashboardLayout />
+          </Suspense>
+        ),
+        children: [
+          { index: true, element: <AdminMiddleContent /> },
+          { path: "sellers", element: <SellerManagement /> },
+          { path: "product", element: <ProductManagement /> },
+          { path: "orders", element: <OrderManagement /> },
+          {
+            path: "delivery-management",
+            element: <DeliveryManagement />,
+          },
+          { path: "finance", element: <FinanceCommission /> },
+          { path: "customers", element: <CustomerManagement /> },
+        ],
+      },
     ],
   },
-  {
-    path: "*",
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <NotFound />
-      </Suspense>
-    ),
-  },
+
 ]);
 
 export default router;

@@ -2,5 +2,7 @@ package com.krishisathi.model;
 
 public enum Role {
 
-    FARMER
+    FARMER,
+    ADMIN,
+    SELLER
 }
