@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import useRegister from "../hooks/useRegister";
 
 const steps = [
     { title: "Account & Identity", subtitle: "Verify your identity" },
@@ -7,20 +8,23 @@ const steps = [
     { title: "Bank & Review", subtitle: "Payout setup" },
 ];
 
-// Pressed-in (inset) input; focus shows a green outline
 const inputClass =
     "neu-inset mt-2 w-full rounded-xl border-0 px-4 py-3 text-sm text-on-surface outline-none transition placeholder:text-outline focus:outline-2 focus:outline-offset-2 focus:outline-secondary/60";
 
-function Field({ label, required, hint, children }) {
+function Field({ label, required = false, hint, children }) {
     return (
         <div className="min-w-0">
             <label className="text-sm font-semibold text-primary">
                 {label}
                 {required && <span className="ml-1 text-error">*</span>}
             </label>
+
             {children}
+
             {hint && (
-                <p className="mt-1.5 text-xs leading-5 text-on-surface-variant">{hint}</p>
+                <p className="mt-1.5 text-xs leading-5 text-on-surface-variant">
+                    {hint}
+                </p>
             )}
         </div>
     );
@@ -36,26 +40,39 @@ function TextField({
     type = "text",
     hint,
     maxLength,
+    autoComplete,
 }) {
     return (
         <Field label={label} required={required} hint={hint}>
             <input
                 className={inputClass}
                 name={name}
-                value={value}
+                value={value ?? ""}
                 onChange={onChange}
                 type={type}
                 placeholder={placeholder}
                 required={required}
                 maxLength={maxLength}
-                autoComplete="off"
+                autoComplete={
+                    autoComplete ??
+                    (name === "password" || name === "confirmPassword"
+                        ? "new-password"
+                        : "off")
+                }
             />
         </Field>
     );
 }
 
-function FileField({ label, name, onChange, hint }) {
+function FileField({ label, name, onChange, hint, accept = ".pdf,.jpg,.jpeg,.png" }) {
     const [fileName, setFileName] = useState("");
+
+    const handleFileChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+
+        setFileName(file?.name ?? "");
+        onChange(name, file);
+    };
 
     return (
         <Field label={label} hint={hint}>
@@ -63,24 +80,23 @@ function FileField({ label, name, onChange, hint }) {
                 <span className="neu-raised-sm flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl text-secondary">
                     ↑
                 </span>
+
                 <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-on-surface">
                         {fileName || "Choose document"}
                     </span>
+
                     <span className="mt-1 block text-xs text-on-surface-variant">
                         PDF, JPG or PNG
                     </span>
                 </span>
+
                 <input
                     className="sr-only"
                     type="file"
                     name={name}
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(event) => {
-                        const file = event.target.files?.[0] || null;
-                        setFileName(file?.name || "");
-                        onChange(name, file);
-                    }}
+                    accept={accept}
+                    onChange={handleFileChange}
                 />
             </label>
         </Field>
@@ -88,99 +104,33 @@ function FileField({ label, name, onChange, hint }) {
 }
 
 export default function RegisterForm() {
-    const [step, setStep] = useState(0);
-    const [message, setMessage] = useState("");
-    const [success, setSuccess] = useState(false);
-    const [accepted, setAccepted] = useState(false);
+    const {
+        step,
+        setStep,
+        form,
+        files,
+        message,
+        success,
+        accepted,
+        setAccepted,
+        isSubmitting,
+        updateField,
+        updateFile,
+        nextStep,
+        previousStep,
+        setMessage,
+        setSuccess,
+    } = useRegister();
 
-    const [form, setForm] = useState({
-        fullName: "",
-        mobile: "",
-        email: "",
-        aadhaar: "",
-        pan: "",
-        businessName: "",
-        businessType: "",
-        address: "",
-        city: "",
-        state: "",
-        pincode: "",
-        gstin: "",
-        registrationNumber: "",
-        productLicence: "",
-        bankAccountName: "",
-        accountNumber: "",
-        confirmAccountNumber: "",
-        ifsc: "",
-    });
-
-    const [files, setFiles] = useState({});
-
-    const updateField = (event) => {
-        const { name, value } = event.target;
-        setForm((previous) => ({ ...previous, [name]: value }));
-        setMessage("");
-        setSuccess(false);
-    };
-
-    const updateFile = (name, file) => {
-        setFiles((previous) => ({ ...previous, [name]: file }));
-    };
-
-    const nextStep = async (event) => {
-        event.preventDefault();
-        setMessage("");
-        setSuccess(false);
-
-        if (step === 0) {
-            if (!/^\d{10}$/.test(form.mobile)) {
-                setMessage("Enter a valid 10-digit mobile number.");
-                return;
-            }
-
-            if (form.aadhaar && !/^\d{12}$/.test(form.aadhaar)) {
-                setMessage("Check the Aadhaar number format.");
-                return;
-            }
-
-            if (
-                form.pan &&
-                !/^[A-Z]{5}\d{4}[A-Z]$/.test(form.pan.toUpperCase())
-            ) {
-                setMessage("Enter a valid PAN format, for example ABCDE1234F.");
-                return;
-            }
+    const goToPreviousStep = (index) => {
+        if (index < step) {
+            setStep(index);
+            setMessage("");
+            setSuccess(false);
         }
-
-        if (step === 1) {
-            if (!/^\d{6}$/.test(form.pincode)) {
-                setMessage("Enter a valid 6-digit PIN code.");
-                return;
-            }
-        }
-
-        if (step === 2) {
-            // Only the seven agreed fields are mandatory.
-            // Optional bank/document fields can be completed later.
-            // Connect this point to your Spring Boot registration API.
-            setSuccess(true);
-            setMessage(
-                "Form validation completed. Registration is not submitted yet because the backend API is not connected."
-            );
-            return;
-        }
-
-        setStep((current) => current + 1);
-    };
-
-    const previousStep = () => {
-        setMessage("");
-        setSuccess(false);
-        setStep((current) => Math.max(0, current - 1));
     };
 
     return (
-        /* Registration card */
         <section className="neu-raised overflow-hidden rounded-3xl">
             {/* Stepper */}
             <div className="border-b border-primary/10 px-5 py-6 sm:px-10 sm:py-8">
@@ -189,6 +139,7 @@ export default function RegisterForm() {
                         <p className="text-sm font-bold text-primary">
                             Seller registration
                         </p>
+
                         <p className="mt-1 text-xs text-on-surface-variant">
                             Complete the required fields. Other details can be added later.
                         </p>
@@ -199,14 +150,17 @@ export default function RegisterForm() {
                     </span>
                 </div>
 
-                {/* Circular steps */}
                 <div className="relative grid grid-cols-3">
-                    {/* Connector track (inset) with green progress */}
                     <div className="neu-inset-sm absolute left-[16.66%] right-[16.66%] top-[17px] h-1.5 overflow-hidden rounded-full">
                         <div
                             className="h-full rounded-full bg-secondary transition-all duration-500"
                             style={{
-                                width: step === 0 ? "0%" : step === 1 ? "50%" : "100%",
+                                width:
+                                    step === 0
+                                        ? "0%"
+                                        : step === 1
+                                          ? "50%"
+                                          : "100%",
                             }}
                         />
                     </div>
@@ -219,13 +173,7 @@ export default function RegisterForm() {
                             <button
                                 key={item.title}
                                 type="button"
-                                onClick={() => {
-                                    if (index < step) {
-                                        setStep(index);
-                                        setMessage("");
-                                        setSuccess(false);
-                                    }
-                                }}
+                                onClick={() => goToPreviousStep(index)}
                                 disabled={index >= step}
                                 className="relative z-10 flex min-w-0 flex-col items-center text-center disabled:cursor-default"
                             >
@@ -234,8 +182,8 @@ export default function RegisterForm() {
                                         active
                                             ? "neu-btn-primary scale-110"
                                             : completed
-                                            ? "neu-raised-sm text-secondary"
-                                            : "neu-inset-sm text-outline"
+                                              ? "neu-raised-sm text-secondary"
+                                              : "neu-inset-sm text-outline"
                                     }`}
                                 >
                                     {completed ? (
@@ -276,18 +224,20 @@ export default function RegisterForm() {
                 </div>
             </div>
 
-            {/* Form content */}
+            {/* Form */}
             <form onSubmit={nextStep} className="px-5 py-7 sm:px-10 sm:py-9">
-                {/* STEP 1 */}
+                {/* STEP 1: ACCOUNT & IDENTITY */}
                 {step === 0 && (
                     <div>
                         <div className="mb-6">
                             <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                 Step 01
                             </span>
+
                             <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                 Account & identity
                             </h2>
+
                             <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                                 Enter your contact details and identity information.
                             </p>
@@ -301,6 +251,7 @@ export default function RegisterForm() {
                                 onChange={updateField}
                                 required
                                 placeholder="Enter your full name"
+                                autoComplete="name"
                             />
 
                             <TextField
@@ -312,6 +263,7 @@ export default function RegisterForm() {
                                 type="tel"
                                 maxLength={10}
                                 placeholder="10-digit mobile number"
+                                autoComplete="tel"
                                 hint="OTP verification requires backend integration."
                             />
 
@@ -320,10 +272,34 @@ export default function RegisterForm() {
                                 name="email"
                                 value={form.email}
                                 onChange={updateField}
-                                type="email"
                                 required
+                                type="email"
                                 placeholder="you@example.com"
-                                hint="Required for account updates and approval notifications."
+                                autoComplete="email"
+                                hint="Used for account updates and notifications."
+                            />
+
+                            <TextField
+                                label="Password"
+                                name="password"
+                                value={form.password}
+                                onChange={updateField}
+                                required
+                                type="password"
+                                placeholder="Create a password"
+                                autoComplete="new-password"
+                                hint="Use at least 8 characters, including uppercase, lowercase and a number."
+                            />
+
+                            <TextField
+                                label="Confirm password"
+                                name="confirmPassword"
+                                value={form.confirmPassword}
+                                onChange={updateField}
+                                required
+                                type="password"
+                                placeholder="Re-enter your password"
+                                autoComplete="new-password"
                             />
 
                             <TextField
@@ -351,31 +327,33 @@ export default function RegisterForm() {
                                 }
                                 maxLength={10}
                                 placeholder="ABCDE1234F"
-                                hint="Recommended; required where applicable."
+                                hint="Required where applicable."
                             />
 
                             <FileField
                                 label="PAN document"
                                 name="panDocument"
                                 onChange={updateFile}
-                                hint="Upload if required for seller verification."
+                                hint="Upload the document if required for verification."
                             />
                         </div>
                     </div>
                 )}
 
-                {/* STEP 2 */}
+                {/* STEP 2: BUSINESS DETAILS */}
                 {step === 1 && (
                     <div>
                         <div className="mb-6">
                             <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                 Step 02
                             </span>
+
                             <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                 Business details
                             </h2>
+
                             <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                                Tell us about your business and order pickup location.
+                                Tell us about your business and pickup location.
                             </p>
                         </div>
 
@@ -393,10 +371,10 @@ export default function RegisterForm() {
                                 <select
                                     className={inputClass}
                                     name="businessType"
-                                    value={form.businessType}
+                                    value={form.businessType ?? ""}
                                     onChange={updateField}
                                 >
-                                    <option value="">Select business type (optional)</option>
+                                    <option value="">Select business type</option>
                                     <option value="farmer">Individual farmer</option>
                                     <option value="sole-proprietor">Sole proprietor</option>
                                     <option value="partnership">Partnership</option>
@@ -412,7 +390,7 @@ export default function RegisterForm() {
                                     name="address"
                                     value={form.address}
                                     onChange={updateField}
-                                    placeholder="House, street, village or locality (optional)"
+                                    placeholder="House, street, village or locality"
                                 />
                             </div>
 
@@ -458,7 +436,7 @@ export default function RegisterForm() {
                                 }
                                 maxLength={15}
                                 placeholder="If applicable"
-                                hint="Required where applicable."
+                                hint="Provide when applicable to your business."
                             />
 
                             <TextField
@@ -475,7 +453,14 @@ export default function RegisterForm() {
                                 value={form.productLicence}
                                 onChange={updateField}
                                 placeholder="If applicable"
-                                hint="Certain regulated products may require a licence."
+                                hint="Some regulated products require a licence."
+                            />
+
+                            <FileField
+                                label="Supporting documents"
+                                name="supportingDocuments"
+                                onChange={updateFile}
+                                hint="Upload required supporting documents."
                             />
 
                             <FileField
@@ -489,24 +474,27 @@ export default function RegisterForm() {
                                 label="Product licence document"
                                 name="licenceDocument"
                                 onChange={updateFile}
-                                hint="Upload when required for the products you sell."
+                                hint="Upload when required."
                             />
                         </div>
                     </div>
                 )}
 
-                {/* STEP 3 */}
+                {/* STEP 3: BANK & REVIEW */}
                 {step === 2 && (
                     <div>
                         <div className="mb-6">
                             <span className="text-xs font-bold uppercase tracking-wider text-secondary">
                                 Step 03
                             </span>
+
                             <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
                                 Bank details & review
                             </h2>
+
                             <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                                Bank details and supporting documents are optional for now.
+                                Add payout details now or provide them later if your
+                                registration process allows it.
                             </p>
                         </div>
 
@@ -514,13 +502,14 @@ export default function RegisterForm() {
                             <span className="neu-raised-sm flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg">
                                 🔒
                             </span>
+
                             <div>
                                 <p className="text-sm font-bold text-primary">
                                     Secure payout details
                                 </p>
+
                                 <p className="mt-1 text-xs leading-5 text-on-surface-variant">
-                                    Bank details are needed before payouts. Your backend
-                                    should protect sensitive information and restrict access.
+                                    Protect bank details and restrict access on the backend.
                                 </p>
                             </div>
                         </div>
@@ -531,7 +520,7 @@ export default function RegisterForm() {
                                 name="bankAccountName"
                                 value={form.bankAccountName}
                                 onChange={updateField}
-                                placeholder="Name as per bank records (optional)"
+                                placeholder="Name as per bank records"
                             />
 
                             <TextField
@@ -547,7 +536,7 @@ export default function RegisterForm() {
                                     })
                                 }
                                 maxLength={11}
-                                placeholder="e.g. SBIN0001234 (optional)"
+                                placeholder="e.g. SBIN0001234"
                             />
 
                             <TextField
@@ -556,7 +545,7 @@ export default function RegisterForm() {
                                 value={form.accountNumber}
                                 onChange={updateField}
                                 type="password"
-                                placeholder="Enter account number (optional)"
+                                placeholder="Enter account number"
                             />
 
                             <TextField
@@ -565,7 +554,7 @@ export default function RegisterForm() {
                                 value={form.confirmAccountNumber}
                                 onChange={updateField}
                                 type="password"
-                                placeholder="Re-enter account number (optional)"
+                                placeholder="Re-enter account number"
                             />
 
                             <div className="md:col-span-2">
@@ -573,7 +562,7 @@ export default function RegisterForm() {
                                     label="Cancelled cheque / bank proof"
                                     name="bankProof"
                                     onChange={updateFile}
-                                    hint="Recommended to verify bank details; follow your payout provider's requirements."
+                                    hint="Upload if required for payout verification."
                                 />
                             </div>
                         </div>
@@ -598,7 +587,10 @@ export default function RegisterForm() {
                                     ["Bank account holder", form.bankAccountName],
                                 ].map(([label, value]) => (
                                     <div key={label} className="min-w-0">
-                                        <p className="text-xs text-on-surface-variant">{label}</p>
+                                        <p className="text-xs text-on-surface-variant">
+                                            {label}
+                                        </p>
+
                                         <p className="mt-1 break-words text-sm font-semibold text-on-surface">
                                             {value || "Not entered"}
                                         </p>
@@ -610,13 +602,16 @@ export default function RegisterForm() {
                                 <input
                                     type="checkbox"
                                     checked={accepted}
-                                    onChange={(event) => setAccepted(event.target.checked)}
+                                    onChange={(event) =>
+                                        setAccepted(event.target.checked)
+                                    }
                                     className="mt-1 h-4 w-4 accent-secondary"
                                 />
+
                                 <span>
-                                    Optional: I confirm that the information provided is accurate
-                                    and agree to the seller registration terms and applicable
-                                    verification requirements.
+                                    I confirm that the information provided is accurate
+                                    and agree to the seller registration terms and
+                                    applicable verification requirements.
                                 </span>
                             </label>
                         </div>
@@ -626,7 +621,7 @@ export default function RegisterForm() {
                 {/* Feedback */}
                 {message && (
                     <div
-                        role="status"
+                        role={success ? "status" : "alert"}
                         className={`neu-inset mt-6 rounded-xl px-4 py-3 text-sm font-medium ${
                             success ? "text-secondary" : "text-error"
                         }`}
@@ -635,7 +630,7 @@ export default function RegisterForm() {
                     </div>
                 )}
 
-                {/* Bottom navigation */}
+                {/* Navigation */}
                 <div className="mt-8 flex flex-col-reverse gap-4 border-t border-primary/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
                     {step === 0 ? (
                         <Link
@@ -648,7 +643,8 @@ export default function RegisterForm() {
                         <button
                             type="button"
                             onClick={previousStep}
-                            className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold text-on-surface"
+                            disabled={isSubmitting}
+                            className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold text-on-surface disabled:opacity-60"
                         >
                             ← Previous
                         </button>
@@ -656,9 +652,14 @@ export default function RegisterForm() {
 
                     <button
                         type="submit"
-                        className="neu-btn-primary rounded-xl px-7 py-3 text-sm font-bold"
+                        disabled={isSubmitting}
+                        className="neu-btn-primary rounded-xl px-7 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {step === 2 ? "Submit registration →" : "Continue →"}
+                        {isSubmitting
+                            ? "Submitting..."
+                            : step === 2
+                              ? "Submit registration →"
+                              : "Continue →"}
                     </button>
                 </div>
             </form>

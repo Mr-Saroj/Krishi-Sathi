@@ -181,9 +181,9 @@ public class AuthController {
                                 new ApiResponse("Logged out successfully"));
         }
 
-        @PostMapping("/webRegister")
+        @PostMapping(value = "/webRegister", consumes = "multipart/form-data")
         public ResponseEntity<ApiResponse> webRegister(
-                        @Valid @RequestBody WebSellerRegisterRequest request) {
+                        @Valid @ModelAttribute WebSellerRegisterRequest request) {
 
                 String message = authService.webRegister(request);
 

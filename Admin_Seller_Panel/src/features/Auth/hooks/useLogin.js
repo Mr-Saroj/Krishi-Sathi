@@ -42,6 +42,7 @@ export default function useLogin() {
       return;
     }
 
+    // Validate email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Please enter a valid email address.");
       return;
@@ -50,23 +51,23 @@ export default function useLogin() {
     setLoading(true);
 
     try {
-      // Call Spring Boot admin web login API
+      // Call Spring Boot web login API
       const response = await api.post("/auth/weblogin", {
         email,
         password,
       });
 
-      const { fullName, role } = response.data;
+      const { role } = response.data;
 
-      // The backend sets the HttpOnly accessToken cookie.
-      // Do not try to read or manually save the JWT here.
+      // Backend sets the HttpOnly accessToken cookie.
+      // Do not manually save the JWT in frontend JavaScript.
 
       if (role === "ADMIN") {
-        // Optional: keep non-sensitive user information in memory
-        // or your existing authentication context if needed.
         navigate("/admin-dashboard", { replace: true });
+      } else if (role === "SELLER") {
+        navigate("/seller-dashboard", { replace: true });
       } else {
-        setError("Access denied. Admin account required.");
+        setError("Access denied. Unsupported account role.");
       }
     } catch (err) {
       if (err.response) {
@@ -75,7 +76,9 @@ export default function useLogin() {
         if (status === 401) {
           setError("Invalid email or password.");
         } else if (status === 403) {
-          setError("You are not authorized to access this account.");
+          setError(
+            "You are not authorized to access this account."
+          );
         } else {
           setError(
             err.response.data?.message ||
@@ -84,7 +87,7 @@ export default function useLogin() {
         }
       } else {
         setError(
-          "Unable to connect to the server. Please try again."
+          "Unable to connect to the server. Please check your connection."
         );
       }
     } finally {

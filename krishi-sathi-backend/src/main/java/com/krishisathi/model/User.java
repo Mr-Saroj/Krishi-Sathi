@@ -1,3 +1,4 @@
+
 package com.krishisathi.model;
 
 import lombok.Data;
@@ -12,12 +13,8 @@ public class User {
     private String id;
 
     private String fullName;
-
     private String email;
-
     private String mobileNumber;
-
     private String password;
-
     private Role role;
 }

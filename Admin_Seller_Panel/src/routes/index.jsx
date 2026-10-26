@@ -121,6 +121,26 @@ const router = createBrowserRouter([
       },
     ],
   },
+  // Admin routes - protected
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/seller-dashboard",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <SellerDashboardLayout />
+          </Suspense>
+        ),
+        children: [
+          { index: true, element: <SellerMiddleContent /> },
+          { path: "inventory", element: <SellerInventory /> },
+         
+          
+        ],
+      },
+    ],
+  },
 
 ]);
 

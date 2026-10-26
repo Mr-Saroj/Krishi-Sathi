@@ -8,10 +8,9 @@ import com.krishisathi.dto.WebLoginRequest;
 import com.krishisathi.dto.WebSellerRegisterRequest;
 import com.krishisathi.exception.ApiException;
 import com.krishisathi.model.Role;
-import com.krishisathi.model.Seller;
+
 import com.krishisathi.model.SellerLoginAccess;
 import com.krishisathi.model.User;
-import com.krishisathi.repository.SellerRepository;
 import com.krishisathi.repository.UserRepository;
 
 import java.time.Instant;
@@ -21,24 +20,32 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.krishisathi.model.SellerProfile;
+import com.krishisathi.repository.SellerProfileRepository;
+
 @Service
 public class AuthService {
 
         private final UserRepository userRepository;
-        private final SellerRepository sellerRepository;
         private final PasswordEncoder passwordEncoder;
         private final JwtService jwtService;
+        private final CloudinaryService cloudinaryService;
+        public final SellerProfileRepository sellerProfileRepository;
 
         public AuthService(
                         UserRepository farmerRepository,
-                        SellerRepository sellerRepository,
+                        
                         PasswordEncoder passwordEncoder,
-                        JwtService jwtService) {
+                        JwtService jwtService,
+                        CloudinaryService cloudinaryService,
+                        SellerProfileRepository sellerProfileRepository) {
 
                 this.userRepository = farmerRepository;
-                this.sellerRepository = sellerRepository;
+                
                 this.passwordEncoder = passwordEncoder;
                 this.jwtService = jwtService;
+                this.cloudinaryService = cloudinaryService;
+                this.sellerProfileRepository = sellerProfileRepository;
         }
 
         // Existing registration - unchanged
@@ -79,7 +86,7 @@ public class AuthService {
                 return "Registration successful";
         }
 
-        // Existing farmer login - unchanged
+        // farmer login
         public LoginResponse login(LoginRequest request) {
 
                 String mobileNumber = request.getMobileNumber().trim();
@@ -148,119 +155,80 @@ public class AuthService {
                                 user.getRole());
         }
 
-        // Seller registration
         public String webRegister(WebSellerRegisterRequest request) {
 
-                String email = request.email()
-                                .trim()
-                                .toLowerCase(Locale.ROOT);
-
+                String email = request.email().trim().toLowerCase(Locale.ROOT);
                 String mobileNumber = request.mobileNumber().trim();
 
-                // Check whether email already exists in sellers
-                if (sellerRepository.existsByEmailIgnoreCase(email)) {
+                if (userRepository.existsByEmail(email)
+                                || userRepository.existsByEmailIgnoreCase(email)) {
                         throw new ApiException(
                                         "Email is already registered",
                                         HttpStatus.CONFLICT);
                 }
 
-                // Check whether mobile number already exists in sellers
-                if (sellerRepository.existsByMobileNumber(mobileNumber)) {
+                if (userRepository.existsByMobileNumber(mobileNumber)
+                                || userRepository.existsByMobileNumber(mobileNumber)) {
                         throw new ApiException(
                                         "Mobile number is already registered",
                                         HttpStatus.CONFLICT);
                 }
 
-                // Prevent duplicate email or mobile numbers from existing users
-                if (userRepository.existsByEmail(email)) {
-                        throw new ApiException(
-                                        "Email is already registered",
-                                        HttpStatus.CONFLICT);
-                }
+                // Upload documents
+                String panDocumentUrl = cloudinaryService.uploadPrivateImage(
+                                request.panDocument(), "seller/pan");
 
-                if (userRepository.existsByMobileNumber(mobileNumber)) {
-                        throw new ApiException(
-                                        "Mobile number is already registered",
-                                        HttpStatus.CONFLICT);
-                }
+                String bankProofUrl = cloudinaryService.uploadPrivateImage(
+                                request.bankProof(), "seller/bank-proof");
 
-                Seller seller = new Seller();
+                String supportingDocumentsUrl = cloudinaryService.uploadPrivateImage(
+                                request.supportingDocuments(),
+                                "seller/supporting-documents");
 
-                // Required fields
-                seller.setFullName(request.fullName().trim());
-                seller.setMobileNumber(mobileNumber);
-                seller.setEmail(email);
-                seller.setBusinessName(request.businessName().trim());
-                seller.setCity(request.city().trim());
-                seller.setState(request.state().trim());
-                seller.setPinCode(request.pinCode().trim());
+                // 1. Save common account information in users
+                User user = new User();
+                user.setFullName(request.fullName().trim());
+                user.setEmail(email);
+                user.setMobileNumber(mobileNumber);
+                user.setPassword(passwordEncoder.encode(request.password()));
+                user.setRole(Role.SELLER);
 
-                // Optional identity fields
-                seller.setAadhaarNumber(clean(request.aadhaarNumber()));
-                seller.setPanNumber(clean(request.panNumber()));
-                seller.setPanDocumentUrl(clean(request.panDocumentUrl()));
+                userRepository.save(user);
 
-                // Optional business fields
-                seller.setBusinessType(clean(request.businessType()));
-                seller.setBusinessAddress(clean(request.businessAddress()));
-                seller.setGstin(clean(request.gstin()));
-                seller.setBusinessRegistrationNumber(
-                                clean(request.businessRegistrationNumber()));
-                seller.setProductLicense(clean(request.productLicense()));
-                seller.setSupportingDocumentsUrl(
-                                clean(request.supportingDocumentsUrl()));
+                // 2. Save seller-specific information in seller_profiles
+                SellerProfile profile = new SellerProfile();
+                profile.setUserId(user.getId());
 
-                // Optional bank fields
-                seller.setAccountHolderName(clean(request.accountHolderName()));
-                seller.setIfscCode(clean(request.ifscCode()));
-                seller.setAccountNumber(clean(request.accountNumber()));
-                seller.setBankProofUrl(clean(request.bankProofUrl()));
+                profile.setBusinessName(request.businessName().trim());
+                profile.setCity(request.city().trim());
+                profile.setState(request.state().trim());
+                profile.setPinCode(request.pinCode().trim());
+                profile.setBusinessType(request.businessType().trim());
+                profile.setBusinessAddress(request.businessAddress().trim());
+                profile.setGstin(request.gstin().trim());
+                profile.setBusinessRegistrationNumber(
+                                request.businessRegistrationNumber().trim());
+                profile.setProductLicense(request.productLicense().trim());
 
-                // No password is created during registration
-                seller.setPassword(null);
+                profile.setAadhaarNumber(request.aadhaarNumber().trim());
+                profile.setPanNumber(request.panNumber().trim());
+                profile.setPanDocumentUrl(panDocumentUrl);
+                profile.setSupportingDocumentsUrl(supportingDocumentsUrl);
 
-                // Admin approval is required before login
-                seller.setLoginAccess(SellerLoginAccess.PENDING);
+                profile.setAccountHolderName(request.accountHolderName().trim());
+                profile.setIfscCode(request.ifscCode().trim());
+                profile.setAccountNumber(request.accountNumber().trim());
+                profile.setBankProofUrl(bankProofUrl);
 
-                // Profile completeness: all fields must be populated
-                seller.setProfileIsComplete(
-                                hasText(seller.getFullName())
-                                                && hasText(seller.getMobileNumber())
-                                                && hasText(seller.getEmail())
-                                                && hasText(seller.getBusinessName())
-                                                && hasText(seller.getCity())
-                                                && hasText(seller.getState())
-                                                && hasText(seller.getPinCode())
-                                                && hasText(seller.getAadhaarNumber())
-                                                && hasText(seller.getPanNumber())
-                                                && hasText(seller.getPanDocumentUrl())
-                                                && hasText(seller.getBusinessType())
-                                                && hasText(seller.getBusinessAddress())
-                                                && hasText(seller.getGstin())
-                                                && hasText(seller.getBusinessRegistrationNumber())
-                                                && hasText(seller.getProductLicense())
-                                                && hasText(seller.getSupportingDocumentsUrl())
-                                                && hasText(seller.getAccountHolderName())
-                                                && hasText(seller.getIfscCode())
-                                                && hasText(seller.getAccountNumber())
-                                                && hasText(seller.getBankProofUrl()));
+                profile.setLoginAccess(SellerLoginAccess.PENDING);
 
                 Instant now = Instant.now();
-                seller.setCreatedAt(now);
-                seller.setUpdatedAt(now);
+                profile.setCreatedAt(now);
+                profile.setUpdatedAt(now);
 
-                sellerRepository.save(seller);
+                sellerProfileRepository.save(profile);
 
                 return "Seller registration successful. Your account is pending admin approval.";
         }
 
-        // Converts blank optional fields to null
-        private String clean(String value) {
-                return value == null || value.isBlank() ? null : value.trim();
-        }
-
-        // Checks whether a field contains a value
-        private boolean hasText(String value) {
-                return value != null && !value.isBlank();
-        }
 }
