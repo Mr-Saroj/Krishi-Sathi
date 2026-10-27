@@ -1,6 +1,6 @@
 package com.krishisathi.model;
 
-public enum SellerLoginAccess {
+public enum LoginAccess {
     PENDING,
     APPROVED,
     REJECTED

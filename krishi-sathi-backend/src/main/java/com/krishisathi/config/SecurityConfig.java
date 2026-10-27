@@ -22,85 +22,81 @@ import io.jsonwebtoken.security.Keys;
 @Configuration
 public class SecurityConfig {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+        @Value("${jwt.secret}")
+        private String jwtSecret;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http) throws Exception {
 
-        return http
-                .csrf(csrf -> csrf.disable())
+                return http
+                                .csrf(csrf -> csrf.disable())
 
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(
+                                                                SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
+                                .authorizeHttpRequests(auth -> auth
 
-                        // Public authentication APIs
-                        .requestMatchers(
-                                "/api/auth/register",
-                                "/api/auth/login",
-                                "/api/auth/weblogin",
-                                "/api/auth/webRegister"
-                        ).permitAll()
+                                                // Public authentication APIs
+                                                .requestMatchers(
+                                                                "/api/auth/register",
+                                                                "/api/auth/login",
+                                                                "/api/auth/weblogin",
+                                                                "/api/auth/webRegister")
+                                                .permitAll()
 
-                        // Public disease prediction API, if intended
-                        .requestMatchers(
-                                "/api/disease/predict"
-                        ).permitAll()
+                                                // Public disease prediction API, if intended
+                                                .requestMatchers(
+                                                                "/api/disease/predict")
+                                                .permitAll()
 
-                        // Only FARMER-authorized users
-                        .requestMatchers("/api/chat/**")
-                        .hasAuthority("FARMER")
+                                                // Only ADMIN can access admin APIs
+                                                .requestMatchers("/api/admin/**")
+                                                .hasAuthority("ADMIN")
 
-                        // All remaining endpoints require authentication
-                        .anyRequest().authenticated()
-                )
+                                                // Only FARMER-authorized users
+                                                .requestMatchers("/api/chat/**")
+                                                .hasAuthority("FARMER")
 
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(
-                                        jwtAuthenticationConverter()
-                                )
-                        )
-                )
+                                                // All remaining endpoints require authentication
+                                                .anyRequest().authenticated())
 
-                .build();
-    }
+                                .oauth2ResourceServer(oauth2 -> oauth2
+                                                .jwt(jwt -> jwt
+                                                                .jwtAuthenticationConverter(
+                                                                                jwtAuthenticationConverter())))
 
-    @Bean
-    public SecretKey jwtSecretKey() {
-        return Keys.hmacShaKeyFor(
-                jwtSecret.getBytes(StandardCharsets.UTF_8)
-        );
-    }
+                                .build();
+        }
 
-    @Bean
-    public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-        return NimbusJwtDecoder
-                .withSecretKey(jwtSecretKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-    }
+        @Bean
+        public SecretKey jwtSecretKey() {
+                return Keys.hmacShaKeyFor(
+                                jwtSecret.getBytes(StandardCharsets.UTF_8));
+        }
 
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        @Bean
+        public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+                return NimbusJwtDecoder
+                                .withSecretKey(jwtSecretKey)
+                                .macAlgorithm(MacAlgorithm.HS256)
+                                .build();
+        }
 
-        JwtGrantedAuthoritiesConverter authoritiesConverter =
-                new JwtGrantedAuthoritiesConverter();
+        @Bean
+        public JwtAuthenticationConverter jwtAuthenticationConverter() {
 
-        authoritiesConverter.setAuthoritiesClaimName("role");
-        authoritiesConverter.setAuthorityPrefix("");
+                JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
-        JwtAuthenticationConverter converter =
-                new JwtAuthenticationConverter();
+                authoritiesConverter.setAuthoritiesClaimName("role");
+                authoritiesConverter.setAuthorityPrefix("");
 
-        converter.setJwtGrantedAuthoritiesConverter(
-                authoritiesConverter
-        );
+                JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 
-        return converter;
-    }
+                converter.setJwtGrantedAuthoritiesConverter(
+                                authoritiesConverter);
+
+                return converter;
+        }
 }

@@ -9,7 +9,7 @@ import com.krishisathi.dto.WebSellerRegisterRequest;
 import com.krishisathi.exception.ApiException;
 import com.krishisathi.model.Role;
 
-import com.krishisathi.model.SellerLoginAccess;
+import com.krishisathi.model.LoginAccess;
 import com.krishisathi.model.User;
 import com.krishisathi.repository.UserRepository;
 
@@ -70,18 +70,19 @@ public class AuthService {
                                         HttpStatus.CONFLICT);
                 }
 
-                User farmer = new User();
+                User user = new User();
 
-                farmer.setFullName(request.getFullName().trim());
-                farmer.setEmail(email);
-                farmer.setMobileNumber(mobileNumber);
+                user.setFullName(request.getFullName().trim());
+                user.setEmail(email);
+                user.setMobileNumber(mobileNumber);
 
-                farmer.setPassword(
+                user.setPassword(
                                 passwordEncoder.encode(request.getPassword()));
 
-                farmer.setRole(Role.FARMER);
+                user.setRole(Role.FARMER);
+                user.setLoginAccess(LoginAccess.APPROVED);
 
-                userRepository.save(farmer);
+                userRepository.save(user);
 
                 return "Registration successful";
         }
@@ -192,12 +193,13 @@ public class AuthService {
                 user.setMobileNumber(mobileNumber);
                 user.setPassword(passwordEncoder.encode(request.password()));
                 user.setRole(Role.SELLER);
+                user.setLoginAccess(LoginAccess.PENDING);
 
                 userRepository.save(user);
 
                 // 2. Save seller-specific information in seller_profiles
                 SellerProfile profile = new SellerProfile();
-                profile.setUserId(user.getId());
+                profile.setUserId(email);
 
                 profile.setBusinessName(request.businessName().trim());
                 profile.setCity(request.city().trim());
@@ -219,8 +221,6 @@ public class AuthService {
                 profile.setIfscCode(request.ifscCode().trim());
                 profile.setAccountNumber(request.accountNumber().trim());
                 profile.setBankProofUrl(bankProofUrl);
-
-                profile.setLoginAccess(SellerLoginAccess.PENDING);
 
                 Instant now = Instant.now();
                 profile.setCreatedAt(now);

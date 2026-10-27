@@ -1,185 +1,93 @@
+import React, { useEffect } from 'react';
 
-import React from 'react';
-
-import { StatCard } from '../utils/middlecontentUtils';
 import useSellerManagement from '../hooks/useSellerManagement';
-
 import SellerDetailPanel from './SellerDetailPanel';
 import SellerManagementSkeleton from '../Skeliton/SellerManagementSkeleton';
 
-import {
-  STATUS_TEXT,
-  formatINR,
-  openComplaintCount,
-} from '../utils/sellerManagementUtils';
-
-const inputBase =
-  'neu-inset rounded-xl border-0 py-2.5 text-sm text-on-surface outline-none placeholder:text-outline focus:outline-2 focus:outline-offset-2 focus:outline-secondary/60';
-
-// Tab-specific details column
-const getDetails = (seller, tab) => {
-  if (tab === 'applications') {
-    const verified = seller.documents.filter(
-      (document) => document.status === 'VERIFIED'
-    ).length;
-
-    return `${verified}/${seller.documents.length} documents verified`;
-  }
-
-  if (tab === 'complaints') {
-    return `${openComplaintCount(seller)} open complaint(s)`;
-  }
-
-  return seller.perf.orders
-    ? `${formatINR(seller.perf.totalSales)} • ${seller.perf.orders} orders`
-    : 'No sales yet';
-};
+import { STATUS_TEXT } from '../utils/sellerManagementUtils';
 
 const SellerManagement = () => {
   const {
     isLoading,
+    isDetailLoading,
+    error,
     tab,
     setTab,
-    query,
-    setQuery,
-    status,
-    setStatus,
-    stats,
     visibleSellers,
     selectedSeller,
     openSeller,
     closeSeller,
     toast,
     actions,
+    hasNext,
+    loadMore,
   } = useSellerManagement();
 
-  // Show skeleton while initial data is loading
+  // Keep the hook in the applications view because the UI now
+  // displays pending applications only.
+  useEffect(() => {
+    if (tab !== 'applications') {
+      setTab('applications');
+    }
+  }, [tab, setTab]);
+
+  // Show skeleton while pending sellers are loading.
   if (isLoading) {
     return <SellerManagementSkeleton />;
   }
 
-  const tabs = [
-    ['applications', `Applications (${stats.pending})`],
-    ['all', 'All sellers'],
-    ['complaints', 'Complaints'],
-  ];
-
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Heading */}
+      {/* Page heading */}
       <div>
         <h1 className="text-xl font-extrabold text-primary sm:text-2xl">
-          Seller Management
+          Pending Seller Applications
         </h1>
 
         <p className="mt-1 text-sm text-on-surface-variant">
-          Review applications, verify documents, and manage seller status and complaints.
+          Review seller registration details and documents before approving
+          their applications.
         </p>
       </div>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Sellers"
-          value={stats.total}
-          icon="storefront"
-          colorClass="text-violet-600"
-          sub="ALL"
-        />
+      {/* API error */}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <p>{error}</p>
+        </div>
+      )}
 
-        <StatCard
-          label="Pending Applications"
-          value={stats.pending}
-          icon="pending_actions"
-          colorClass="text-amber-600"
-          sub="REVIEW"
-        />
-
-        <StatCard
-          label="Approved Sellers"
-          value={stats.approved}
-          icon="verified"
-          colorClass="text-secondary"
-          sub="ACTIVE"
-        />
-
-        <StatCard
-          label="Suspended"
-          value={stats.suspended}
-          icon="block"
-          colorClass="text-rose-600"
-          sub="BLOCKED"
-        />
-      </section>
-
-      {/* Seller List */}
+      {/* Pending seller list */}
       <section className="neu-raised overflow-hidden rounded-2xl">
-        {/* Toolbar */}
-        <div className="flex flex-col gap-4 border-b border-primary/10 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="neu-inset flex w-fit gap-1 rounded-xl p-1.5">
-            {tabs.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold transition-all sm:text-sm ${
-                  tab === key
-                    ? 'neu-raised-sm text-primary'
-                    : 'text-on-surface-variant hover:text-primary'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        {/* Table heading */}
+        <div className="flex flex-col gap-2 border-b border-primary/10 p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-primary">
+            Seller Applications
+          </h2>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className={`${inputBase} flex items-center px-4 sm:w-64`}>
-              <span className="material-symbols-outlined mr-2 text-[20px] text-outline">
-                search
-              </span>
-
-              <input
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search seller, shop or city"
-                className="w-full bg-transparent outline-none placeholder:text-outline"
-              />
-            </div>
-
-            {tab === 'all' && (
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-                className={`${inputBase} px-4`}
-              >
-                <option value="ALL">All statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="SUSPENDED">Suspended</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-            )}
-          </div>
+          <p className="text-sm text-on-surface-variant">
+            Review each pending application before granting login access.
+          </p>
         </div>
 
-        {/* Seller Table */}
+        {/* Seller table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-outline">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-primary/5 text-xs uppercase tracking-wide text-outline">
               <tr>
                 {[
                   'Seller',
                   'Location',
                   'Applied on',
                   'Status',
-                  'Details',
                   'Actions',
                 ].map((heading) => (
                   <th
                     key={heading}
-                    className="px-6 py-3 font-semibold"
+                    className="px-6 py-4 font-semibold"
                   >
                     {heading}
                   </th>
@@ -188,93 +96,171 @@ const SellerManagement = () => {
             </thead>
 
             <tbody className="divide-y divide-primary/10">
-              {visibleSellers.map((seller) => (
-                <tr
-                  key={seller.id}
-                  className="transition-colors hover:bg-primary/5"
-                >
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-primary">
-                      {seller.shopName}
-                    </p>
+              {visibleSellers.map((seller) => {
+                const sellerId =
+                  seller.id ?? seller.sellerId ?? seller._id;
 
-                    <p className="text-xs text-on-surface-variant">
-                      {seller.owner} • {seller.id}
-                    </p>
-                  </td>
+                const sellerName =
+                  seller.owner ??
+                  seller.fullName ??
+                  'Unknown seller';
 
-                  <td className="whitespace-nowrap px-6 py-4 text-on-surface-variant">
-                    {seller.city}, {seller.state}
-                  </td>
+                const shopName =
+                  seller.shopName ??
+                  seller.businessName ??
+                  'Unnamed shop';
 
-                  <td className="whitespace-nowrap px-6 py-4 text-xs text-outline">
-                    {seller.appliedOn}
-                  </td>
+                const location = [
+                  seller.city,
+                  seller.state,
+                ]
+                  .filter(Boolean)
+                  .join(', ');
 
-                  <td className="px-6 py-4">
-                    <span
-                      className={`neu-inset-sm whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold ${
-                        STATUS_TEXT[seller.status]
-                      }`}
-                    >
-                      {seller.status}
-                    </span>
-                  </td>
+                const sellerStatus =
+                  seller.status ??
+                  seller.loginAccess ??
+                  'PENDING';
 
-                  <td className="whitespace-nowrap px-6 py-4 text-xs text-on-surface-variant">
-                    {getDetails(seller, tab)}
-                  </td>
+                return (
+                  <tr
+                    key={sellerId}
+                    className="transition-colors hover:bg-primary/5"
+                  >
+                    {/* Seller information */}
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-primary">
+                        {shopName}
+                      </p>
 
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => openSeller(seller.id)}
-                        className="neu-btn rounded-lg px-4 py-2 text-xs font-semibold text-primary"
+                      <p className="mt-1 text-xs text-on-surface-variant">
+                        {sellerName}
+                      </p>
+
+                      <p className="mt-1 break-all text-xs text-outline">
+                        {seller.email ?? sellerId}
+                      </p>
+                    </td>
+
+                    {/* Location */}
+                    <td className="px-6 py-4 text-on-surface-variant">
+                      {location || 'Not provided'}
+                    </td>
+
+                    {/* Application date */}
+                    <td className="whitespace-nowrap px-6 py-4 text-xs text-outline">
+                      {seller.appliedOn ??
+                        seller.createdAt ??
+                        '—'}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`neu-inset-sm whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold ${STATUS_TEXT?.[sellerStatus] ??
+                          'text-amber-700'
+                          }`}
                       >
-                        {seller.status === 'PENDING' ? 'Review' : 'View'}
-                      </button>
+                        {sellerStatus}
+                      </span>
+                    </td>
 
-                      {seller.status === 'PENDING' && (
+                    {/* Actions */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => actions.approve(seller.id)}
-                          className="neu-btn-primary rounded-lg px-4 py-2 text-xs font-semibold"
+                          onClick={() => openSeller(sellerId)}
+                          disabled={isDetailLoading}
+                          className="neu-btn rounded-lg px-4 py-2 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isDetailLoading
+                            ? 'Loading...'
+                            : 'Review'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => actions.approve(sellerId)}
+                          disabled={sellerStatus !== 'PENDING'}
+                          className="neu-btn-primary rounded-lg px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Approve
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
+              {/* Empty state */}
               {visibleSellers.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
-                    className="px-6 py-12 text-center text-outline"
+                    colSpan={5}
+                    className="px-6 py-12 text-center"
                   >
-                    No sellers found for this view.
+                    <div className="flex flex-col items-center gap-3">
+                      <span className="material-symbols-outlined text-4xl text-outline">
+                        task_alt
+                      </span>
+
+                      <p className="font-semibold text-primary">
+                        {error
+                          ? 'Unable to load pending applications'
+                          : 'No pending seller applications'}
+                      </p>
+
+                      <p className="text-sm text-on-surface-variant">
+                        {error
+                          ? 'Check the API error above and try again.'
+                          : 'New seller applications will appear here.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Load more pending applications */}
+        {hasNext && (
+          <div className="flex justify-center border-t border-primary/10 p-4">
+            <button
+              type="button"
+              onClick={loadMore}
+              className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold text-primary"
+            >
+              Load More Applications
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* Seller Detail Panel */}
+      {/* Seller details panel */}
       {selectedSeller && (
         <SellerDetailPanel
-          key={selectedSeller.id}
+          key={selectedSeller.sellerId ?? selectedSeller.id}
           seller={selectedSeller}
           onClose={closeSeller}
           actions={actions}
         />
       )}
 
-      {/* Toast */}
+      {/* Seller detail loading indicator */}
+      {isDetailLoading && !selectedSeller && (
+        <div
+          role="status"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20"
+        >
+          <div className="neu-raised rounded-xl px-6 py-4 text-sm font-semibold text-primary">
+            Loading seller details...
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
       {toast && (
         <div
           role="status"

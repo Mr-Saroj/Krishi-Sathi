@@ -17,4 +17,5 @@ public class User {
     private String mobileNumber;
     private String password;
     private Role role;
+    private LoginAccess loginAccess;
 }

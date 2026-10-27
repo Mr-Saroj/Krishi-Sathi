@@ -44,7 +44,7 @@ public class SellerProfile {
     private String bankProofUrl;
 
     // Approval and timestamps
-    private SellerLoginAccess loginAccess = SellerLoginAccess.PENDING;
+    // private LoginAccess loginAccess = LoginAccess.PENDING;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant approvedAt;

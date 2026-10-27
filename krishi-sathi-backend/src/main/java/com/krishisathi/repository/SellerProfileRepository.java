@@ -1,11 +1,9 @@
-
 package com.krishisathi.repository;
 
-import java.util.Optional;
-
+import com.krishisathi.model.SellerProfile;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.krishisathi.model.SellerProfile;
+import java.util.Optional;
 
 public interface SellerProfileRepository
         extends MongoRepository<SellerProfile, String> {
