@@ -14,7 +14,7 @@ export const ADMIN_NAV_LINKS = [
   },
   {
     icon: 'inventory_2',
-    label: 'Product Management',
+    label: 'Product Catalog',
     to: '/admin-dashboard/product',
   },
   {
