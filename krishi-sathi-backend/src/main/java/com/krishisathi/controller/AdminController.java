@@ -15,10 +15,13 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -58,34 +61,53 @@ public class AdminController {
                 return ResponseEntity.ok(response);
         }
 
-        // Add a new catalog product
-        @PostMapping("/add-catalog")
+        // Add catalog product with image upload
+        @PostMapping(value = "/add-catalog", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<CatalogProduct> addCatalogProduct(
-                        @Valid @RequestBody CatalogProductRequest request) {
 
-                CatalogProduct product = adminCatalogService.addCatalogProduct(request);
+                        @RequestParam("id") String id,
 
-                return ResponseEntity.status(HttpStatus.CREATED).body(product);
+                        @RequestParam("category") String category,
+
+                        @RequestParam("name") String name,
+
+                        @RequestParam("brand") String brand,
+
+                        @RequestParam("price") BigDecimal price,
+
+                        @RequestPart("image") MultipartFile image) {
+
+                CatalogProductRequest request = new CatalogProductRequest(
+                                id,
+                                category,
+                                name,
+                                brand,
+                                price);
+
+                CatalogProduct product = adminCatalogService.addCatalogProduct(request, image);
+
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(product);
         }
 
+        // Get all catalog products
         @GetMapping("/catalog")
         public ResponseEntity<List<CatalogProduct>> getAllCatalogProducts() {
 
-                List<CatalogProduct> products = adminCatalogService.getAllCatalogProducts();
-
-                return ResponseEntity.ok(products);
+                return ResponseEntity.ok(
+                                adminCatalogService.getAllCatalogProducts());
         }
 
-        // Update only the catalog product price
+        // Update only catalog product price
         @PatchMapping("/catalog/{productId}/price")
         public ResponseEntity<CatalogProduct> updateCatalogProductPrice(
                         @PathVariable String productId,
                         @Valid @RequestBody CatalogPriceUpdateRequest request) {
 
-                CatalogProduct product = adminCatalogService.updateCatalogProductPrice(
-                                productId,
-                                request);
-
-                return ResponseEntity.ok(product);
+                return ResponseEntity.ok(
+                                adminCatalogService.updateCatalogProductPrice(
+                                                productId,
+                                                request));
         }
 }

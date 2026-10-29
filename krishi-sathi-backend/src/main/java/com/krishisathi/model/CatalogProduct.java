@@ -29,6 +29,8 @@ public class CatalogProduct {
 
     private BigDecimal price;
 
+    private String imageUrl;
+
     private Instant createdAt;
 
     private Instant updatedAt;

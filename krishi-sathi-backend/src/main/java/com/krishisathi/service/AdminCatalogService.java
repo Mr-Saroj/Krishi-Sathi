@@ -7,14 +7,16 @@ import com.krishisathi.repository.CatalogProductRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -22,27 +24,43 @@ public class AdminCatalogService {
 
     private final CatalogProductRepository catalogProductRepository;
 
-    public CatalogProduct addCatalogProduct(CatalogProductRequest request) {
+    private final CloudinaryService cloudinaryService;
+
+    public CatalogProduct addCatalogProduct(
+            CatalogProductRequest request,
+            MultipartFile image) {
 
         String productId = request.id().trim();
 
-        // Check for duplicate product ID
+        // Check duplicate product ID
         if (catalogProductRepository.existsById(productId)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Product ID already exists");
+                    "Product ID already exists"
+            );
         }
+
+        // Upload product image to Cloudinary
+        String imageUrl = cloudinaryService.uploadPrivateImage(
+                image,
+                "krishi-sathi/catalog"
+        );
 
         Instant now = Instant.now();
 
+        // Build catalog product
         CatalogProduct product = CatalogProduct.builder()
                 .id(productId)
-                .category(request.category().trim()
-                        .toUpperCase(Locale.ROOT)
-                        .replace(' ', '_'))
+                .category(
+                        request.category()
+                                .trim()
+                                .toUpperCase(Locale.ROOT)
+                                .replace(' ', '_')
+                )
                 .name(request.name().trim())
                 .brand(request.brand().trim())
                 .price(request.price())
+                .imageUrl(imageUrl)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -53,7 +71,8 @@ public class AdminCatalogService {
     public List<CatalogProduct> getAllCatalogProducts() {
 
         return catalogProductRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
     }
 
     public CatalogProduct updateCatalogProductPrice(
@@ -64,11 +83,11 @@ public class AdminCatalogService {
                 .findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Catalog product not found: " + productId));
+                        "Catalog product not found: " + productId
+                ));
 
         product.setPrice(request.price());
-
-        product.setUpdatedAt(java.time.Instant.now());
+        product.setUpdatedAt(Instant.now());
 
         return catalogProductRepository.save(product);
     }
