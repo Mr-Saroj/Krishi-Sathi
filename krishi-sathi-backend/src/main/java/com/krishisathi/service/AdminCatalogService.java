@@ -22,73 +22,71 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AdminCatalogService {
 
-    private final CatalogProductRepository catalogProductRepository;
+        private final CatalogProductRepository catalogProductRepository;
 
-    private final CloudinaryService cloudinaryService;
+        private final CloudinaryService cloudinaryService;
 
-    public CatalogProduct addCatalogProduct(
-            CatalogProductRequest request,
-            MultipartFile image) {
+        public CatalogProduct addCatalogProduct(
+                        CatalogProductRequest request,
+                        MultipartFile image) {
 
-        String productId = request.id().trim();
+                String productId = request.id().trim();
 
-        // Check duplicate product ID
-        if (catalogProductRepository.existsById(productId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Product ID already exists"
-            );
+                if (catalogProductRepository.existsById(productId)) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.CONFLICT,
+                                        "Product ID already exists");
+                }
+
+                String imageUrl = cloudinaryService.uploadPrivateImage(
+                                image,
+                                "krishi-sathi/catalog");
+
+                Instant now = Instant.now();
+
+                CatalogProduct product = CatalogProduct.builder()
+                                .id(productId)
+                                .category(
+                                                request.category()
+                                                                .trim()
+                                                                .toUpperCase(Locale.ROOT)
+                                                                .replace(' ', '_'))
+                                .name(request.name().trim())
+                                .brand(request.brand().trim())
+                                .description(request.description().trim())
+                                .quantity(request.quantity())
+                                .quantityUnit(
+                                                request.quantityUnit()
+                                                                .trim()
+                                                                .toUpperCase(Locale.ROOT))
+                                .price(request.price())
+                                .imageUrl(imageUrl)
+                                .createdAt(now)
+                                .updatedAt(now)
+                                .build();
+
+                return catalogProductRepository.save(product);
         }
 
-        // Upload product image to Cloudinary
-        String imageUrl = cloudinaryService.uploadPrivateImage(
-                image,
-                "krishi-sathi/catalog"
-        );
+        public List<CatalogProduct> getAllCatalogProducts() {
 
-        Instant now = Instant.now();
+                return catalogProductRepository.findAll(
+                                Sort.by(Sort.Direction.DESC, "createdAt"));
+        }
 
-        // Build catalog product
-        CatalogProduct product = CatalogProduct.builder()
-                .id(productId)
-                .category(
-                        request.category()
-                                .trim()
-                                .toUpperCase(Locale.ROOT)
-                                .replace(' ', '_')
-                )
-                .name(request.name().trim())
-                .brand(request.brand().trim())
-                .price(request.price())
-                .imageUrl(imageUrl)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
+        public CatalogProduct updateCatalogProductPrice(
+                        String productId,
+                        CatalogPriceUpdateRequest request) {
 
-        return catalogProductRepository.save(product);
-    }
+                CatalogProduct product = catalogProductRepository
+                                .findById(productId)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Catalog product not found: " + productId));
 
-    public List<CatalogProduct> getAllCatalogProducts() {
+                product.setPrice(request.price());
+                product.setUpdatedAt(Instant.now());
 
-        return catalogProductRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "createdAt")
-        );
-    }
-
-    public CatalogProduct updateCatalogProductPrice(
-            String productId,
-            CatalogPriceUpdateRequest request) {
-
-        CatalogProduct product = catalogProductRepository
-                .findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Catalog product not found: " + productId
-                ));
-
-        product.setPrice(request.price());
-        product.setUpdatedAt(Instant.now());
-
-        return catalogProductRepository.save(product);
-    }
+                return catalogProductRepository.save(product);
+        }
 }

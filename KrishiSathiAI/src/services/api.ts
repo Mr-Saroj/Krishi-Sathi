@@ -9,15 +9,41 @@ export const api = axios.create({
   },
 });
 
+// REQUEST INTERCEPTOR
 api.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync("auth_token");
+    const isPublicAuthEndpoint =
+      config.url?.includes("/auth/register") ||
+      config.url?.includes("/auth/login");
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Attach JWT only to protected API requests
+    if (!isPublicAuthEndpoint) {
+      const token = await SecureStore.getItemAsync("auth_token");
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// RESPONSE INTERCEPTOR
+api.interceptors.response.use(
+  (response) => {
+    console.log("API SUCCESS:", response.config.url);
+    console.log("RESPONSE DATA:", response.data);
+
+    return response;
+  },
+  (error) => {
+    console.log("API FAILED:", error.message);
+    console.log("API URL:", error.config?.url);
+    console.log("HTTP STATUS:", error.response?.status);
+    console.log("ERROR DATA:", error.response?.data);
+
+    return Promise.reject(error);
+  }
 );

@@ -73,6 +73,12 @@ public class AdminController {
 
                         @RequestParam("brand") String brand,
 
+                        @RequestParam("description") String description,
+
+                        @RequestParam("quantity") BigDecimal quantity,
+
+                        @RequestParam("quantityUnit") String quantityUnit,
+
                         @RequestParam("price") BigDecimal price,
 
                         @RequestPart("image") MultipartFile image) {
@@ -82,6 +88,9 @@ public class AdminController {
                                 category,
                                 name,
                                 brand,
+                                description,
+                                quantity,
+                                quantityUnit,
                                 price);
 
                 CatalogProduct product = adminCatalogService.addCatalogProduct(request, image);

@@ -7,11 +7,11 @@ export const SELLER_NAV_LINKS = [
     to: '/seller-dashboard',
     end: true,
   },
-  {
-    icon: 'inventory_2',
-    label: 'My Products',
-    to: '/seller-dashboard/products',
-  },
+ {
+  icon: 'add_box',
+  label: 'Add New Product',
+  to: '/seller-dashboard/add-new product',
+},
   {
     icon: 'inventory',
     label: 'Inventory Management',

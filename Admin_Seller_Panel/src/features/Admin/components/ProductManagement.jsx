@@ -17,6 +17,9 @@ const emptyForm = {
   category: CATEGORY_OPTIONS[0],
   name: "",
   brand: "",
+  description: "",
+  quantity: "",
+  quantityUnit: "KG",
   price: "",
 };
 
@@ -82,6 +85,7 @@ const ProductManagement = () => {
         product.name,
         product.brand,
         product.category,
+        product.description,
       ];
       const matchesQuery = values.some((value) =>
         String(value ?? "").toLowerCase().includes(q)
@@ -120,10 +124,17 @@ const ProductManagement = () => {
     const id = form.id.trim().toUpperCase();
     const name = form.name.trim();
     const brand = form.brand.trim();
+    const description = form.description.trim();
+    const quantity = Number(form.quantity);
+    const quantityUnit = form.quantityUnit;
     const price = Number(form.price);
 
-    if (!id || !name || !brand) {
-      setError("Product ID, name, and brand are required.");
+    if (!id || !name || !brand || !description) {
+      setError("Product ID, name, and brand and description are required.");
+      return;
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError("Enter a valid quantity greater than zero.");
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
@@ -154,6 +165,9 @@ const ProductManagement = () => {
         category: form.category,
         name,
         brand,
+        description,
+        quantity,
+        quantityUnit,
         price,
         image: imageFile,
       });
@@ -391,6 +405,25 @@ const ProductManagement = () => {
                   className={`${inputBase} w-full px-4`}
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-primary">
+                  Product description
+                </label>
+
+                <textarea
+                  required
+                  rows={4}
+                  maxLength={1000}
+                  value={form.description}
+                  onChange={updateField("description")}
+                  placeholder="Enter product description, benefits, usage instructions..."
+                  className={`${inputBase} w-full resize-y px-4 py-3`}
+                />
+
+                <p className="mt-1 text-xs text-on-surface-variant text-right">
+                  {form.description.length}/1000 characters
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -417,6 +450,44 @@ const ProductManagement = () => {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-primary">
+                  Product quantity
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+
+                  {/* Quantity input */}
+                  <input
+                    required
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    value={form.quantity}
+                    onChange={updateField("quantity")}
+                    placeholder="Enter quantity"
+                    className={`${inputBase} w-full px-4`}
+                  />
+
+                  {/* Unit selection */}
+                  <select
+                    value={form.quantityUnit}
+                    onChange={updateField("quantityUnit")}
+                    className={`${inputBase} w-full px-4`}
+                  >
+                    <option value="KG">Kilogram (KG)</option>
+                    <option value="GRAM">Gram (GRAM)</option>
+                    <option value="PIECE">PIECE</option>
+                  </select>
+
+                </div>
+
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Example: 1 KG, 500 GRAM
+                </p>
+              </div>
+
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-primary">Product image</label>

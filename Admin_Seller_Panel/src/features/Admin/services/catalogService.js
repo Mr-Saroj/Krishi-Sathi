@@ -1,3 +1,4 @@
+
 import api from "../../../services/api";
 
 // Get all catalog products
@@ -12,6 +13,9 @@ export const createCatalogProduct = async ({
   category,
   name,
   brand,
+  description,
+  quantity,
+  quantityUnit,
   price,
   image,
 }) => {
@@ -21,13 +25,13 @@ export const createCatalogProduct = async ({
   data.append("category", category);
   data.append("name", name);
   data.append("brand", brand);
+  data.append("description", description);
+  data.append("quantity", String(quantity));
+  data.append("quantityUnit", quantityUnit);
   data.append("price", String(price));
   data.append("image", image);
 
-  const response = await api.post(
-    "/admin/add-catalog",
-    data
-  );
+  const response = await api.post("/admin/add-catalog", data);
 
   return response.data;
 };

@@ -18,6 +18,7 @@ import ProtectedRoute from "../features/Auth/ProtectedRoute";
 
 
 
+
 // Auth part
 const Home = lazy(() => import("../features/Landing/Home"));
 const Register = lazy(() => import("../features/Auth/Register"));
@@ -55,6 +56,9 @@ const SellerMiddleContent = lazy(
 );
 const SellerInventory = lazy(
   () => import("../features/Seller/components/SellerInventory")
+);
+const AddProductCatalog = lazy(
+  () => import("../features/Seller/components/AddProductCatalog")
 );
 
 // 404 page (unavailable routes)
@@ -135,6 +139,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <SellerMiddleContent /> },
           { path: "inventory", element: <SellerInventory /> },
+           { path: "add-new product", element: <AddProductCatalog/> },
          
           
         ],

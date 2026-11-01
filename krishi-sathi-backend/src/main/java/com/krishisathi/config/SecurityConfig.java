@@ -2,9 +2,7 @@
 package com.krishisathi.config;
 
 import java.nio.charset.StandardCharsets;
-
 import javax.crypto.SecretKey;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,8 +54,13 @@ public class SecurityConfig {
                                                 .hasAuthority("ADMIN")
 
                                                 // Only FARMER-authorized users
-                                                .requestMatchers("/api/chat/**")
+                                                .requestMatchers("/api/farmer/**",
+                                                                "/api/chat/**",
+                                                                "/api/farmer/shop/**")
                                                 .hasAuthority("FARMER")
+
+                                                .requestMatchers("/api/seller/**")
+                                                .hasAuthority("SELLER")
 
                                                 // All remaining endpoints require authentication
                                                 .anyRequest().authenticated())

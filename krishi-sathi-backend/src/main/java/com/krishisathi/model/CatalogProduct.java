@@ -27,6 +27,12 @@ public class CatalogProduct {
 
     private String brand;
 
+    private String description;
+
+    private BigDecimal quantity;
+
+    private String quantityUnit;
+
     private BigDecimal price;
 
     private String imageUrl;

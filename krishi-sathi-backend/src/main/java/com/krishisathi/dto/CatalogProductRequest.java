@@ -25,6 +25,20 @@ public record CatalogProductRequest(
         @NotBlank(message = "Brand name is required")
         String brand,
 
+        @NotBlank(message = "Product description is required")
+        String description,
+
+         @NotNull(message = "Quantity is required")
+        @DecimalMin(value = "0.01", message = "Quantity must be greater than zero")
+        BigDecimal quantity,
+
+        @NotBlank(message = "Quantity unit is required")
+        @Pattern(
+                regexp = "^(KG|GRAM|PIECE)$",
+                message = "Unit must be KG, GRAM, or PIECE"
+        )
+        String quantityUnit,
+
         @NotNull(message = "Product price is required")
         @DecimalMin(value = "0.01", message = "Price must be greater than zero")
         BigDecimal price

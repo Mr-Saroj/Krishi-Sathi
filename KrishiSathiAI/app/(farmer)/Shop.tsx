@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useRouter } from 'expo-router';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -23,6 +24,7 @@ const INK = '#1F2A24';
 type Category = {
   id: string;
   name: string;
+  apiCategory: string; // must match the backend enum value exactly (e.g. SEEDS)
   icon: IconName;
   image?: ImageSourcePropType;
 };
@@ -37,47 +39,54 @@ type Product = {
   image?: string; // paste an image URL here (https://...)
 };
 
-// TODO: replace all data below with your API / store
+// NOTE: check each apiCategory against your Spring enum values
 const CATEGORIES: Category[] = [
   {
     id: 'seeds',
     name: 'Seeds',
+    apiCategory: 'SEEDS',
     icon: 'seed-outline',
     image: require('../../assets/Images/seeds.avif'),
   },
   {
     id: 'tools',
     name: 'Farming Tools',
+    apiCategory: 'TOOLS',
     icon: 'hammer-wrench',
     image: require('../../assets/Images/tools.avif'),
   },
   {
     id: 'machinery',
     name: 'Farm Machinery & Equipment',
+    apiCategory: 'MACHINERY',
     icon: 'tractor',
     image: require('../../assets/Images/machinery.avif'),
   },
   {
     id: 'fertilizer',
     name: 'Fertilizers',
+    apiCategory: 'FERTILIZERS',
     icon: 'bag-personal-outline',
     image: require('../../assets/Images/fertilizer.avif'),
   },
   {
     id: 'pesticide',
     name: 'Pesticides',
+    apiCategory: 'PESTICIDES',
     icon: 'spray',
     image: require('../../assets/Images/pesticide.jpg'),
   },
   {
     id: 'irrigation',
     name: 'Irrigation',
+    apiCategory: 'IRRIGATION',
     icon: 'water-pump',
     image: require('../../assets/Images/irrigation.avif'),
   },
   {
     id: 'feed',
     name: 'Animal Feed',
+    apiCategory: 'ANIMAL_FEED',
     icon: 'cow',
     image: require('../../assets/Images/feed.avif'),
   },
@@ -303,9 +312,9 @@ function ProductCard({ p, width }: { p: Product; width: number }) {
 }
 
 export default function Shop() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const [query, setQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   // 2-column grid: screen padding 16*2, gap 12
   const cardWidth = (width - 32 - 12) / 2;
@@ -315,6 +324,14 @@ export default function Shop() {
   const visible = PRODUCTS.filter(
     (p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q),
   );
+
+  // Open the category page and pass the name + API category
+  const openCategory = (c: Category) => {
+    router.push({
+      pathname: '/category', // change if your route file is somewhere else
+      params: { name: c.name, apiCategory: c.apiCategory },
+    });
+  };
 
   return (
     <ScrollView
@@ -361,8 +378,8 @@ export default function Shop() {
           <CategoryItem
             key={c.id}
             c={c}
-            active={activeCategory === c.id}
-            onPress={() => setActiveCategory(activeCategory === c.id ? null : c.id)}
+            active={false}
+            onPress={() => openCategory(c)}
           />
         ))}
       </ScrollView>
@@ -374,8 +391,6 @@ export default function Shop() {
       {/* Trending */}
       <SectionTitle title="Trending Products" />
       <BannerSlider items={TRENDING_BANNERS} width={bannerWidth} />
-
-      
 
       {/* Recommended products (grid, 8+ items) */}
       <SectionTitle title="Recommended Products" action="See all" />
