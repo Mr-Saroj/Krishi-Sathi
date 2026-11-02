@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRouter } from 'expo-router';
 
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const FOREST = '#14532D';

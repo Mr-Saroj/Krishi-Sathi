@@ -19,51 +19,40 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    private static final Set<String> ALLOWED_TYPES =
-            Set.of("image/jpeg", "image/png", "image/webp");
+    private final ImageOptimizationService imageOptimizationService;
 
-    public CloudinaryService(Cloudinary cloudinary) {
+    public CloudinaryService(Cloudinary cloudinary, ImageOptimizationService imageOptimizationService) {
         this.cloudinary = cloudinary;
+        this.imageOptimizationService = imageOptimizationService;
     }
 
-    public String uploadPrivateImage(
-            MultipartFile file,
-            String folder) {
+   public String uploadPrivateImage(
+        MultipartFile file,
+        String folder) {
 
-        if (file == null || file.isEmpty()) {
-            throw new ApiException(
-                    "Both document images are required",
-                    HttpStatus.BAD_REQUEST);
-        }
+    byte[] optimizedImage =
+            imageOptimizationService.optimizeImage(file);
 
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new ApiException(
-                    "Each image must be 5 MB or smaller",
-                    HttpStatus.BAD_REQUEST);
-        }
+    try {
+        Map<?, ?> result = cloudinary.uploader().upload(
+                optimizedImage,
+                ObjectUtils.asMap(
+                        "resource_type", "image",
+                        "type", "authenticated",
+                        "folder", folder,
+                        "public_id", UUID.randomUUID().toString(),
+                        "format", "jpg",
+                        "overwrite", false
+                )
+        );
 
-        if (!ALLOWED_TYPES.contains(file.getContentType())) {
-            throw new ApiException(
-                    "Only JPEG, PNG, and WebP images are allowed",
-                    HttpStatus.BAD_REQUEST);
-        }
+        return result.get("secure_url").toString();
 
-        try {
-            Map<?, ?> result = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            "resource_type", "image",
-                            "type", "authenticated",
-                            "folder", folder,
-                            "public_id", UUID.randomUUID().toString(),
-                            "overwrite", false));
-
-            return result.get("secure_url").toString();
-
-        } catch (IOException e) {
-            throw new ApiException(
-                    "Unable to upload document",
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    } catch (IOException e) {
+        throw new ApiException(
+                "Unable to upload product image",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
+}
 }
