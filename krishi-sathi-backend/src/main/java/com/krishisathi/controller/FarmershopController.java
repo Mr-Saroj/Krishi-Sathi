@@ -1,9 +1,12 @@
 package com.krishisathi.controller;
 
+import com.krishisathi.dto.PlaceOrderRequest;
 import com.krishisathi.model.CatalogProduct;
+import com.krishisathi.model.Order;
 import com.krishisathi.repository.CatalogProductRepository;
 import com.krishisathi.service.FarmershopService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -54,5 +57,17 @@ public class FarmershopController {
                 String message = farmershopService.checkAvailability(email);
 
                 return ResponseEntity.ok(message);
+        }
+
+        @PostMapping("/orders")
+        public ResponseEntity<?> placeOrder(
+                        @Valid @RequestBody PlaceOrderRequest request,
+                        Authentication authentication) {
+
+                String farmerEmail = authentication.getName();
+
+                Order order = farmershopService.placeOrder(farmerEmail, request);
+
+                return ResponseEntity.ok(order);
         }
 }

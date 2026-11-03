@@ -9,12 +9,19 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useRouter } from 'expo-router';
 
+import CategoryProducts from '../../src/farmer/components/CategoryProducts';
+import Checkout from '../../src/farmer/components/Checkout';
+import OrderSuccess from '../../src/farmer/components/OrderSuccess';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+import type { PlaceOrderResponse } from '../../src/farmer/services/farmerOrderService';
+
+type IconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>['name'];
 
 const FOREST = '#14532D';
 const LEAF = '#2E7D32';
@@ -25,7 +32,7 @@ const INK = '#1F2A24';
 type Category = {
   id: string;
   name: string;
-  apiCategory: string; // must match the backend enum value exactly (e.g. SEEDS)
+  apiCategory: string;
   icon: IconName;
   image?: ImageSourcePropType;
 };
@@ -37,10 +44,9 @@ type Product = {
   price: number;
   unit: string;
   icon: IconName;
-  image?: string; // paste an image URL here (https://...)
+  image?: string;
 };
 
-// NOTE: check each apiCategory against your Spring enum values
 const CATEGORIES: Category[] = [
   {
     id: 'seeds',
@@ -93,54 +99,162 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-// Trending banners. You can also use remote banners: { uri: 'https://...' }
 const BANNER_SEEDS = require('../../assets/Images/Trending1.png');
-const BANNER_RATIO = 3584 / 1184; // fallback width / height (Trending1.png)
 
-type BannerItem = { id: string; source: ImageSourcePropType; label: string };
+const BANNER_RATIO = 3584 / 1184;
+
+type BannerItem = {
+  id: string;
+  source: ImageSourcePropType;
+  label: string;
+};
 
 const TRENDING_BANNERS: BannerItem[] = [
-  { id: 't1', source: BANNER_SEEDS, label: 'Capsicum seeds' },
-  { id: 't2', source: BANNER_SEEDS, label: 'Vegetable seeds' },
-  { id: 't3', source: BANNER_SEEDS, label: 'Hybrid seeds' },
+  {
+    id: 't1',
+    source: BANNER_SEEDS,
+    label: 'Capsicum seeds',
+  },
+  {
+    id: 't2',
+    source: BANNER_SEEDS,
+    label: 'Vegetable seeds',
+  },
+  {
+    id: 't3',
+    source: BANNER_SEEDS,
+    label: 'Hybrid seeds',
+  },
 ];
 
-// Offers & Promotions video
 const PROMO_VIDEO = require('../../assets/Vedios/Promotion2.mp4');
-const PROMO_HEIGHT = 170; // change this number to make the video box taller or shorter
+
+const PROMO_HEIGHT = 170;
 
 const PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Swarna Paddy Seeds', category: 'Seeds', price: 450, unit: '5 kg', icon: 'grain' },
-  { id: 'p2', name: 'Hybrid Cotton Seeds', category: 'Seeds', price: 820, unit: '450 g', icon: 'flower-outline' },
-  { id: 'p3', name: 'Urea Fertilizer', category: 'Fertilizers', price: 266, unit: '45 kg', icon: 'bag-personal-outline' },
-  { id: 'p4', name: 'DAP Fertilizer', category: 'Fertilizers', price: 1350, unit: '50 kg', icon: 'bag-personal-outline' },
-  { id: 'p5', name: 'Hand Sprayer 16L', category: 'Farming Tools', price: 1199, unit: '1 pc', icon: 'spray' },
-  { id: 'p6', name: 'Garden Sickle', category: 'Farming Tools', price: 180, unit: '1 pc', icon: 'content-cut' },
-  { id: 'p7', name: 'Drip Irrigation Kit', category: 'Irrigation', price: 2499, unit: '1 acre', icon: 'water-pump' },
-  { id: 'p8', name: 'Mini Power Tiller', category: 'Machinery', price: 32500, unit: '1 pc', icon: 'tractor' },
-  { id: 'p9', name: 'Neem Oil Pesticide', category: 'Pesticides', price: 340, unit: '1 L', icon: 'bottle-tonic-outline' },
-  { id: 'p10', name: 'Cattle Feed Mix', category: 'Animal Feed', price: 720, unit: '25 kg', icon: 'cow' },
+  {
+    id: 'p1',
+    name: 'Swarna Paddy Seeds',
+    category: 'Seeds',
+    price: 450,
+    unit: '5 kg',
+    icon: 'grain',
+  },
+  {
+    id: 'p2',
+    name: 'Hybrid Cotton Seeds',
+    category: 'Seeds',
+    price: 820,
+    unit: '450 g',
+    icon: 'flower-outline',
+  },
+  {
+    id: 'p3',
+    name: 'Urea Fertilizer',
+    category: 'Fertilizers',
+    price: 266,
+    unit: '45 kg',
+    icon: 'bag-personal-outline',
+  },
+  {
+    id: 'p4',
+    name: 'DAP Fertilizer',
+    category: 'Fertilizers',
+    price: 1350,
+    unit: '50 kg',
+    icon: 'bag-personal-outline',
+  },
+  {
+    id: 'p5',
+    name: 'Hand Sprayer 16L',
+    category: 'Farming Tools',
+    price: 1199,
+    unit: '1 pc',
+    icon: 'spray',
+  },
+  {
+    id: 'p6',
+    name: 'Garden Sickle',
+    category: 'Farming Tools',
+    price: 180,
+    unit: '1 pc',
+    icon: 'content-cut',
+  },
+  {
+    id: 'p7',
+    name: 'Drip Irrigation Kit',
+    category: 'Irrigation',
+    price: 2499,
+    unit: '1 acre',
+    icon: 'water-pump',
+  },
+  {
+    id: 'p8',
+    name: 'Mini Power Tiller',
+    category: 'Machinery',
+    price: 32500,
+    unit: '1 pc',
+    icon: 'tractor',
+  },
+  {
+    id: 'p9',
+    name: 'Neem Oil Pesticide',
+    category: 'Pesticides',
+    price: 340,
+    unit: '1 L',
+    icon: 'bottle-tonic-outline',
+  },
+  {
+    id: 'p10',
+    name: 'Cattle Feed Mix',
+    category: 'Animal Feed',
+    price: 720,
+    unit: '25 kg',
+    icon: 'cow',
+  },
 ];
 
-const formatPrice = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+const formatPrice = (n: number) =>
+  `₹${n.toLocaleString('en-IN')}`;
 
 const cardShadow = {
   shadowColor: '#000',
   shadowOpacity: 0.05,
   shadowRadius: 8,
-  shadowOffset: { width: 0, height: 2 },
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
   elevation: 2,
 } as const;
 
-function SectionTitle({ title, action }: { title: string; action?: string }) {
+// ==================== SECTION TITLE ====================
+
+function SectionTitle({
+  title,
+  action,
+}: {
+  title: string;
+  action?: string;
+}) {
   return (
     <View className="mb-3 mt-6 flex-row items-center justify-between">
-      <Text className="text-[18px] font-extrabold" style={{ color: INK }}>
+      <Text
+        className="text-[18px] font-extrabold"
+        style={{ color: INK }}
+      >
         {title}
       </Text>
+
       {action ? (
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${action} ${title}`}>
-          <Text className="text-[13px] font-bold" style={{ color: FOREST }}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`${action} ${title}`}
+        >
+          <Text
+            className="text-[13px] font-bold"
+            style={{ color: FOREST }}
+          >
             {action}
           </Text>
         </TouchableOpacity>
@@ -148,6 +262,8 @@ function SectionTitle({ title, action }: { title: string; action?: string }) {
     </View>
   );
 }
+
+// ==================== CATEGORY ITEM ====================
 
 function CategoryItem({
   c,
@@ -182,14 +298,22 @@ function CategoryItem({
         {c.image && !failed ? (
           <Image
             source={c.image}
-            style={{ width: '100%', height: '100%' }}
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
             resizeMode="cover"
             onError={() => setFailed(true)}
           />
         ) : (
-          <MaterialCommunityIcons name={c.icon} size={34} color={active ? '#FFFFFF' : LEAF} />
+          <MaterialCommunityIcons
+            name={c.icon}
+            size={34}
+            color={active ? '#FFFFFF' : LEAF}
+          />
         )}
       </View>
+
       <Text
         numberOfLines={2}
         className="mt-2 text-center text-[12px] font-bold"
@@ -201,6 +325,8 @@ function CategoryItem({
   );
 }
 
+// ==================== BANNER SLIDER ====================
+
 function BannerSlider({
   items,
   width,
@@ -209,7 +335,7 @@ function BannerSlider({
 }: {
   items: BannerItem[];
   width: number;
-  heightScale?: number; // 1 = normal, 0.85 = 15% shorter
+  heightScale?: number;
   resizeMode?: 'contain' | 'cover';
 }) {
   return (
@@ -221,10 +347,16 @@ function BannerSlider({
       decelerationRate="fast"
     >
       {items.map((b) => {
-        // Use each image's own shape so nothing is cropped
         const meta = Image.resolveAssetSource(b.source);
-        const ratio = meta?.width && meta?.height ? meta.width / meta.height : BANNER_RATIO;
-        const height = Math.round((width / ratio) * heightScale);
+
+        const ratio =
+          meta?.width && meta?.height
+            ? meta.width / meta.height
+            : BANNER_RATIO;
+
+        const height = Math.round(
+          (width / ratio) * heightScale,
+        );
 
         return (
           <TouchableOpacity
@@ -237,7 +369,10 @@ function BannerSlider({
           >
             <Image
               source={b.source}
-              style={{ width: '100%', height: '100%' }}
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
               resizeMode={resizeMode}
             />
           </TouchableOpacity>
@@ -247,21 +382,29 @@ function BannerSlider({
   );
 }
 
+// ==================== PROMO VIDEO ====================
+
 function PromoVideo({ width }: { width: number }) {
   const player = useVideoPlayer(PROMO_VIDEO, (p) => {
-    p.loop = true; // repeat forever
-    p.muted = true; // no sound
-    p.play(); // start automatically
+    p.loop = true;
+    p.muted = true;
+    p.play();
   });
 
   return (
     <View
       className="overflow-hidden rounded-3xl bg-[#EEF5EA]"
-      style={{ width, height: PROMO_HEIGHT }}
+      style={{
+        width,
+        height: PROMO_HEIGHT,
+      }}
     >
       <VideoView
         player={player}
-        style={{ width: '100%', height: '100%' }}
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
         contentFit="cover"
         nativeControls={false}
         allowsPictureInPicture={false}
@@ -270,10 +413,27 @@ function PromoVideo({ width }: { width: number }) {
   );
 }
 
-function ProductCard({ p, width }: { p: Product; width: number }) {
+// ==================== PRODUCT CARD ====================
+
+function ProductCard({
+  p,
+  width,
+  onBuyNow,
+}: {
+  p: Product;
+  width: number;
+  onBuyNow: (product: Product) => void;
+}) {
   const [failed, setFailed] = useState(false);
+
   return (
-    <View className="mb-4 rounded-3xl bg-white p-3" style={{ width, ...cardShadow }}>
+    <View
+      className="mb-4 rounded-3xl bg-white p-3"
+      style={{
+        width,
+        ...cardShadow,
+      }}
+    >
       <View className="h-28 items-center justify-center overflow-hidden rounded-2xl bg-[#EEF5EA]">
         {p.image && !failed ? (
           <Image
@@ -283,17 +443,33 @@ function ProductCard({ p, width }: { p: Product; width: number }) {
             onError={() => setFailed(true)}
           />
         ) : (
-          <MaterialCommunityIcons name={p.icon} size={44} color={LEAF} />
+          <MaterialCommunityIcons
+            name={p.icon}
+            size={44}
+            color={LEAF}
+          />
         )}
       </View>
 
-      <Text numberOfLines={2} className="mt-2 text-[14px] font-extrabold" style={{ color: INK }}>
+      <Text
+        numberOfLines={2}
+        className="mt-2 text-[14px] font-extrabold"
+        style={{ color: INK }}
+      >
         {p.name}
       </Text>
-      <Text className="text-[12px]" style={{ color: MUTED }}>
+
+      <Text
+        className="text-[12px]"
+        style={{ color: MUTED }}
+      >
         {p.category} • {p.unit}
       </Text>
-      <Text className="mt-1 text-[16px] font-extrabold" style={{ color: FOREST }}>
+
+      <Text
+        className="mt-1 text-[16px] font-extrabold"
+        style={{ color: FOREST }}
+      >
         {formatPrice(p.price)}
       </Text>
 
@@ -303,8 +479,12 @@ function ProductCard({ p, width }: { p: Product; width: number }) {
         style={{ backgroundColor: AMBER }}
         accessibilityRole="button"
         accessibilityLabel={`Buy ${p.name} now`}
+        onPress={() => onBuyNow(p)}
       >
-        <Text className="text-[13px] font-extrabold" style={{ color: INK }}>
+        <Text
+          className="text-[13px] font-extrabold"
+          style={{ color: INK }}
+        >
           Buy Now
         </Text>
       </TouchableOpacity>
@@ -312,40 +492,141 @@ function ProductCard({ p, width }: { p: Product; width: number }) {
   );
 }
 
+// ==================== MAIN SHOP ====================
+
 export default function Shop() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
+
   const [query, setQuery] = useState('');
 
-  // 2-column grid: screen padding 16*2, gap 12
+  const [currentScreen, setCurrentScreen] = useState<
+    'shop' | 'category' | 'checkout' | 'success'
+  >('shop');
+
+  const [checkoutReturnScreen, setCheckoutReturnScreen] =
+    useState<'shop' | 'category'>('shop');
+
+  const [selectedCategory, setSelectedCategory] = useState({
+    name: '',
+    apiCategory: '',
+  });
+
+  const [selectedProduct, setSelectedProduct] =
+    useState<any>(null);
+
+  // Stores the response returned by the backend after placing an order.
+  const [placedOrder, setPlacedOrder] =
+    useState<PlaceOrderResponse | null>(null);
+
   const cardWidth = (width - 32 - 12) / 2;
   const bannerWidth = width - 32;
 
   const q = query.trim().toLowerCase();
+
   const visible = PRODUCTS.filter(
-    (p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q),
+    (p) =>
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q),
   );
 
-  // Open the category page and pass the name + API category
+  // ==================== NAVIGATION FUNCTIONS ====================
+
   const openCategory = (c: Category) => {
-    router.push({
-      pathname: '/category', // change if your route file is somewhere else
-      params: { name: c.name, apiCategory: c.apiCategory },
+    setSelectedCategory({
+      name: c.name,
+      apiCategory: c.apiCategory,
     });
+
+    setCurrentScreen('category');
   };
+
+  const openCheckout = (product: any) => {
+    setCheckoutReturnScreen(
+      currentScreen === 'category' ? 'category' : 'shop',
+    );
+
+    setSelectedProduct(product);
+    setCurrentScreen('checkout');
+  };
+
+  const handleOrderSuccess = (order: PlaceOrderResponse) => {
+    console.log('ORDER PLACED SUCCESSFULLY:', order);
+
+    setPlacedOrder(order);
+    setCurrentScreen('success');
+  };
+
+  const handleContinueShopping = () => {
+    setPlacedOrder(null);
+    setSelectedProduct(null);
+
+    setSelectedCategory({
+      name: '',
+      apiCategory: '',
+    });
+
+    setCurrentScreen('shop');
+  };
+
+  // ==================== CATEGORY SCREEN ====================
+
+  if (currentScreen === 'category') {
+    return (
+      <CategoryProducts
+        category={selectedCategory}
+        onBack={() => setCurrentScreen('shop')}
+        onCheckout={openCheckout}
+      />
+    );
+  }
+
+  // ==================== CHECKOUT SCREEN ====================
+
+  if (currentScreen === 'checkout') {
+    return (
+      <Checkout
+        product={selectedProduct}
+        onBack={() => setCurrentScreen(checkoutReturnScreen)}
+        onOrderSuccess={handleOrderSuccess}
+      />
+    );
+  }
+
+  // ==================== ORDER SUCCESS SCREEN ====================
+
+  if (currentScreen === 'success' && placedOrder) {
+    return (
+      <OrderSuccess
+        order={placedOrder}
+        onContinueShopping={handleContinueShopping}
+      />
+    );
+  }
+
+  // ==================== SHOP HOME SCREEN ====================
 
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130 }}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 130,
+      }}
     >
       {/* Search bar */}
       <View
         className="h-12 flex-row items-center rounded-full bg-white px-4"
         style={cardShadow}
       >
-        <MaterialCommunityIcons name="magnify" size={22} color={MUTED} />
+        <MaterialCommunityIcons
+          name="magnify"
+          size={22}
+          color={MUTED}
+        />
+
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -356,19 +637,25 @@ export default function Shop() {
           style={{ color: INK }}
           accessibilityLabel="Search products"
         />
+
         {query.length > 0 && (
           <TouchableOpacity
             onPress={() => setQuery('')}
             accessibilityRole="button"
             accessibilityLabel="Clear search"
           >
-            <MaterialCommunityIcons name="close-circle" size={18} color={MUTED} />
+            <MaterialCommunityIcons
+              name="close-circle"
+              size={18}
+              color={MUTED}
+            />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Categories (horizontal scroll) */}
+      {/* Categories */}
       <SectionTitle title="What are you looking for?" />
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -385,27 +672,49 @@ export default function Shop() {
         ))}
       </ScrollView>
 
-      {/* Offers & Promotions (autoplay video, muted) */}
+      {/* Offers & Promotions */}
       <SectionTitle title="Offers & Promotions" />
+
       <PromoVideo width={bannerWidth} />
 
       {/* Trending */}
       <SectionTitle title="Trending Products" />
-      <BannerSlider items={TRENDING_BANNERS} width={bannerWidth} />
 
-      {/* Recommended products (grid, 8+ items) */}
-      <SectionTitle title="Recommended Products" action="See all" />
+      <BannerSlider
+        items={TRENDING_BANNERS}
+        width={bannerWidth}
+      />
+
+      {/* Recommended products */}
+      <SectionTitle
+        title="Recommended Products"
+        action="See all"
+      />
+
       {visible.length === 0 ? (
         <View className="items-center py-10">
-          <MaterialCommunityIcons name="magnify-close" size={36} color={MUTED} />
-          <Text className="mt-2 text-[14px]" style={{ color: MUTED }}>
+          <MaterialCommunityIcons
+            name="magnify-close"
+            size={36}
+            color={MUTED}
+          />
+
+          <Text
+            className="mt-2 text-[14px]"
+            style={{ color: MUTED }}
+          >
             No products match “{query}”. Try another name.
           </Text>
         </View>
       ) : (
         <View className="flex-row flex-wrap justify-between">
           {visible.map((p) => (
-            <ProductCard key={p.id} p={p} width={cardWidth} />
+            <ProductCard
+              key={p.id}
+              p={p}
+              width={cardWidth}
+              onBuyNow={openCheckout}
+            />
           ))}
         </View>
       )}

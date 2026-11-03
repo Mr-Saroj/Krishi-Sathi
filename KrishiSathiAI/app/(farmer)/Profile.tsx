@@ -10,12 +10,14 @@ import {
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
 import {
   getFarmerDetails,
   type FarmerDetails,
 } from "../../src/farmer/services/farmerAddressService";
+import FarmerAddress from "../../src/farmer/components/FarmerAddressScreen";
+
+// import FarmerAddress from "../../src/farmer/components/FarmerAddress";
 
 type IconName =
   React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -79,10 +81,11 @@ function Row({
 }
 
 export default function Profile() {
-  const router = useRouter();
-
   const [farmer, setFarmer] = useState<FarmerDetails | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Controls whether the address component is displayed.
+  const [showAddress, setShowAddress] = useState(false);
 
   // FETCH LOGGED-IN FARMER DETAILS
   useEffect(() => {
@@ -122,10 +125,20 @@ export default function Profile() {
     };
   }, []);
 
-  // OPEN ADDRESS SCREEN
+  // OPEN ADDRESS COMPONENT
   const handleEditAddress = () => {
-    router.push("/farmer-address");
+    setShowAddress(true);
   };
+
+  // Show the address component instead of the profile.
+  // The Profile component remains mounted, so its farmer state is preserved.
+  if (showAddress) {
+    return (
+      <FarmerAddress
+        onBack={() => setShowAddress(false)}
+      />
+    );
+  }
 
   return (
     <ScrollView
@@ -138,7 +151,6 @@ export default function Profile() {
       className="bg-[#FAFAF6]"
     >
       {/* PROFILE HEADER */}
-
       <View
         className="mb-5 items-center rounded-3xl px-5 py-7"
         style={{ backgroundColor: FOREST }}
@@ -152,7 +164,6 @@ export default function Profile() {
         </View>
 
         {/* FARMER NAME */}
-
         <Text className="mt-4 text-center text-[22px] font-extrabold text-white">
           {loading
             ? "Loading profile..."
@@ -160,12 +171,13 @@ export default function Profile() {
         </Text>
 
         {/* MOBILE NUMBER */}
-
         <Text
           className="mt-1 text-[14px]"
           style={{ color: "rgba(255,255,255,0.85)" }}
         >
-          {"+91 " + farmer?.mobileNumber || ""}
+          {farmer?.mobileNumber
+            ? `+91 ${farmer.mobileNumber}`
+            : ""}
         </Text>
 
         <View className="mt-4 flex-row items-center rounded-full bg-white/15 px-4 py-2">
@@ -182,7 +194,6 @@ export default function Profile() {
       </View>
 
       {/* ACCOUNT SETTINGS */}
-
       <Text
         className="mb-2 ml-1 text-[13px] font-bold uppercase tracking-wider"
         style={{ color: MUTED }}
@@ -192,7 +203,6 @@ export default function Profile() {
 
       <View className="mb-5 rounded-3xl bg-white px-4">
         {/* MY ADDRESSES */}
-
         <TouchableOpacity
           activeOpacity={0.75}
           onPress={handleEditAddress}
@@ -205,7 +215,6 @@ export default function Profile() {
         </TouchableOpacity>
 
         {/* EMAIL */}
-
         <Row
           icon="email-outline"
           label="Email"
@@ -213,7 +222,6 @@ export default function Profile() {
         />
 
         {/* LANGUAGE */}
-
         <Row
           icon="translate"
           label="Language"
@@ -221,7 +229,6 @@ export default function Profile() {
         />
 
         {/* HELP */}
-
         <Row
           icon="help-circle-outline"
           label="Help & Support"
@@ -229,7 +236,6 @@ export default function Profile() {
         />
 
         {/* LOGOUT */}
-
         <Row
           icon="logout"
           label="Logout"
@@ -238,7 +244,6 @@ export default function Profile() {
       </View>
 
       {/* LOADING INDICATOR */}
-
       {loading && (
         <View className="items-center py-3">
           <ActivityIndicator size="small" color={LEAF} />
@@ -246,7 +251,6 @@ export default function Profile() {
       )}
 
       {/* APP INFORMATION */}
-
       <View className="items-center py-3">
         <MaterialCommunityIcons
           name="leaf"
