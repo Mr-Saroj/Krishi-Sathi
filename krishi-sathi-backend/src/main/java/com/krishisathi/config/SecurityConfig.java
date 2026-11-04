@@ -41,7 +41,8 @@ public class SecurityConfig {
                                                                 "/api/auth/register",
                                                                 "/api/auth/login",
                                                                 "/api/auth/weblogin",
-                                                                "/api/auth/webRegister")
+                                                                "/api/auth/webRegister",
+                                                                "/api/farmer/delivery-boy/check-eligibility")
                                                 .permitAll()
 
                                                 // Public disease prediction API, if intended

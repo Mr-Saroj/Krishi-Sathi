@@ -18,9 +18,9 @@ export const ADMIN_NAV_LINKS = [
     to: '/admin-dashboard/product',
   },
   {
-    icon: 'shopping_cart',
-    label: 'Orders',
-    to: '/admin-dashboard/orders',
+    icon: 'hourglass_empty',
+    label: 'Waiting Orders',
+    to: '/admin-dashboard/waiting-orders',
   },
   {
     icon: 'local_shipping',

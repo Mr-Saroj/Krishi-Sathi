@@ -114,7 +114,7 @@ const router = createBrowserRouter([
           { index: true, element: <AdminMiddleContent /> },
           { path: "sellers", element: <SellerManagement /> },
           { path: "product", element: <ProductManagement /> },
-          { path: "orders", element: <OrderManagement /> },
+          { path: "waiting-orders", element: <OrderManagement /> },
           {
             path: "delivery-management",
             element: <DeliveryManagement />,
@@ -139,9 +139,9 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <SellerMiddleContent /> },
           { path: "inventory", element: <SellerInventory /> },
-           { path: "add-new product", element: <AddProductCatalog/> },
-         
-          
+          { path: "add-new product", element: <AddProductCatalog /> },
+
+
         ],
       },
     ],

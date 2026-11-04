@@ -11,4 +11,5 @@ public interface SellerProfileRepository
 
     Optional<SellerProfile> findByUserId(String userId);
     List<SellerProfile> findByCityIgnoreCase(String city);
+    Optional<SellerProfile> findFirstByCityIgnoreCase(String city);
 }

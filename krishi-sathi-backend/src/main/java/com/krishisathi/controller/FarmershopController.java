@@ -62,11 +62,15 @@ public class FarmershopController {
         @PostMapping("/orders")
         public ResponseEntity<?> placeOrder(
                         @Valid @RequestBody PlaceOrderRequest request,
+                        @RequestHeader("Idempotency-Key") String idempotencyKey,
                         Authentication authentication) {
 
                 String farmerEmail = authentication.getName();
 
-                Order order = farmershopService.placeOrder(farmerEmail, request);
+                Order order = farmershopService.placeOrder(
+                                farmerEmail,
+                                request,
+                                idempotencyKey);
 
                 return ResponseEntity.ok(order);
         }

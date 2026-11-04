@@ -1,4 +1,4 @@
-import { api } from "../../services/api";
+import { api } from '../../services/api';
 
 export type PlaceOrderRequest = {
   productId: string;
@@ -8,7 +8,7 @@ export type PlaceOrderRequest = {
   platformFee: number;
   deliveryFee: number;
   totalSumFee: number;
-  paymentMode: "COD";
+  paymentMode: 'COD';
 };
 
 export type PlaceOrderResponse = {
@@ -27,11 +27,17 @@ export type PlaceOrderResponse = {
 };
 
 export const placeFarmerOrder = async (
-  request: PlaceOrderRequest
+  request: PlaceOrderRequest,
+  idempotencyKey: string,
 ): Promise<PlaceOrderResponse> => {
   const response = await api.post<PlaceOrderResponse>(
-    "/farmer/shop/orders",
-    request
+    '/farmer/shop/orders',
+    request,
+    {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    },
   );
 
   return response.data;

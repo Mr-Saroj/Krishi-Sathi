@@ -1,5 +1,7 @@
-import { useState } from 'react';
+
+import { useState, useRef } from 'react';
 import { Alert } from 'react-native';
+import * as Crypto from 'expo-crypto';
 
 import {
   getAddresses,
@@ -8,15 +10,21 @@ import {
 
 import {
   placeFarmerOrder,
+  type PlaceOrderRequest,
   type PlaceOrderResponse,
 } from '../services/farmerOrderService';
 
 export const MIN_QUANTITY = 1;
 export const MAX_QUANTITY = 99;
 
-// Fixed charges
 export const PLATFORM_FEE = 30;
 export const DELIVERY_CHARGE = 50;
+
+// Stores both UUID and the exact request for a pending attempt.
+type PendingOrderAttempt = {
+  idempotencyKey: string;
+  request: PlaceOrderRequest;
+};
 
 export const formatPrice = (amount: number) =>
   `₹${Number(amount || 0).toLocaleString('en-IN', {
@@ -86,9 +94,18 @@ export default function useCheckout(
 
   const [addressError, setAddressError] = useState('');
 
-  // ==================== ORDER LOADING ====================
+  // ==================== ORDER STATE ====================
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  // Keep the current pending attempt in memory.
+  // useRef prevents unnecessary renders.
+  const pendingOrderRef =
+    useRef<PendingOrderAttempt | null>(null);
+
+  // Expose key for debugging/UI if required.
+  const [idempotencyKey, setIdempotencyKey] =
+    useState<string | null>(null);
 
   // ==================== FETCH ADDRESSES ====================
 
@@ -105,7 +122,6 @@ export default function useCheckout(
         setAddressError(
           'No saved addresses found. Please add an address first.',
         );
-
         return;
       }
 
@@ -165,10 +181,32 @@ export default function useCheckout(
     void loadAddresses();
   };
 
+  // ==================== CREATE OR REUSE ATTEMPT ====================
+
+  const getOrCreateOrderAttempt = (
+    currentRequest: PlaceOrderRequest,
+  ): PendingOrderAttempt => {
+    // If an attempt already exists, reuse its UUID and exact request.
+    if (pendingOrderRef.current) {
+      return pendingOrderRef.current;
+    }
+
+    // First attempt: create a new UUID.
+    const newAttempt: PendingOrderAttempt = {
+      idempotencyKey: Crypto.randomUUID(),
+      request: currentRequest,
+    };
+
+    pendingOrderRef.current = newAttempt;
+
+    setIdempotencyKey(newAttempt.idempotencyKey);
+
+    return newAttempt;
+  };
+
   // ==================== PLACE ORDER API ====================
 
   const handlePlaceOrder = async () => {
-    // Prevent duplicate submissions
     if (isPlacingOrder) {
       return;
     }
@@ -179,17 +217,18 @@ export default function useCheckout(
         'Product Unavailable',
         'Product information is missing.',
       );
-
       return;
     }
 
     // Validate quantity
-    if (quantity < MIN_QUANTITY) {
+    if (
+      quantity < MIN_QUANTITY ||
+      quantity > MAX_QUANTITY
+    ) {
       Alert.alert(
         'Invalid Quantity',
         'Please select a valid product quantity.',
       );
-
       return;
     }
 
@@ -199,7 +238,6 @@ export default function useCheckout(
         'Delivery Address Required',
         'Please select a delivery address before placing your order.',
       );
-
       return;
     }
 
@@ -209,36 +247,50 @@ export default function useCheckout(
         'Invalid Product Price',
         'Product price is not available.',
       );
-
       return;
     }
 
     try {
       setIsPlacingOrder(true);
 
-      // Prepare request data
-      const orderData = {
+      // Prepare current checkout request.
+      const orderData: PlaceOrderRequest = {
         productId,
         quantity,
         addressId: selectedAddress.addressId,
-
-        // Frontend sends all amounts directly
         productTotal: subtotal,
         platformFee: PLATFORM_FEE,
         deliveryFee: DELIVERY_CHARGE,
         totalSumFee: totalAmount,
-
-        paymentMode: 'COD' as const,
+        paymentMode: 'COD',
       };
 
-      console.log('PLACE ORDER REQUEST:', orderData);
+      // Create a new attempt or reuse the pending attempt.
+      const attempt = getOrCreateOrderAttempt(orderData);
 
-      // Call Spring Boot API
-      const response = await placeFarmerOrder(orderData);
+      console.log(
+        'ORDER IDEMPOTENCY KEY:',
+        attempt.idempotencyKey,
+      );
+
+      console.log(
+        'ORDER REQUEST:',
+        attempt.request,
+      );
+
+      // Always send the original request and same UUID on retry.
+      const response = await placeFarmerOrder(
+        attempt.request,
+        attempt.idempotencyKey,
+      );
 
       console.log('PLACE ORDER RESPONSE:', response);
 
-      // Open Order Success screen
+      // Clear pending attempt only after confirmed success.
+      pendingOrderRef.current = null;
+      setIdempotencyKey(null);
+
+      // Navigate to success screen with actual Order response.
       onOrderSuccess(response);
 
     } catch (error: any) {
@@ -257,11 +309,30 @@ export default function useCheckout(
 
       Alert.alert(
         'Order Failed',
-        backendMessage,
+        `${backendMessage}\n\nYou can retry. The same order ID and original request will be used.`,
       );
+
+      // Do not clear pendingOrderRef here.
+      // The next retry will reuse the same UUID and request.
     } finally {
       setIsPlacingOrder(false);
     }
+  };
+
+  // ==================== CANCEL PENDING ATTEMPT ====================
+
+  const handleCancelPendingAttempt = () => {
+    if (isPlacingOrder) {
+      return;
+    }
+
+    pendingOrderRef.current = null;
+    setIdempotencyKey(null);
+
+    Alert.alert(
+      'Retry Attempt Reset',
+      'The previous pending attempt has been cleared. The next order submission will generate a new ID.',
+    );
   };
 
   // ==================== RETURN ====================
@@ -297,5 +368,7 @@ export default function useCheckout(
     // Order
     handlePlaceOrder,
     isPlacingOrder,
+    idempotencyKey,
+    handleCancelPendingAttempt,
   };
 }

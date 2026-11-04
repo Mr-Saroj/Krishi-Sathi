@@ -17,7 +17,9 @@ import CategoryProducts from '../../src/farmer/components/CategoryProducts';
 import Checkout from '../../src/farmer/components/Checkout';
 import OrderSuccess from '../../src/farmer/components/OrderSuccess';
 
+
 import type { PlaceOrderResponse } from '../../src/farmer/services/farmerOrderService';
+import DeliveryBoyForm from '../../src/farmer/components/DeliveryBoyForm';
 
 type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
@@ -110,21 +112,9 @@ type BannerItem = {
 };
 
 const TRENDING_BANNERS: BannerItem[] = [
-  {
-    id: 't1',
-    source: BANNER_SEEDS,
-    label: 'Capsicum seeds',
-  },
-  {
-    id: 't2',
-    source: BANNER_SEEDS,
-    label: 'Vegetable seeds',
-  },
-  {
-    id: 't3',
-    source: BANNER_SEEDS,
-    label: 'Hybrid seeds',
-  },
+  { id: 't1', source: BANNER_SEEDS, label: 'Capsicum seeds' },
+  { id: 't2', source: BANNER_SEEDS, label: 'Vegetable seeds' },
+  { id: 't3', source: BANNER_SEEDS, label: 'Hybrid seeds' },
 ];
 
 const PROMO_VIDEO = require('../../assets/Vedios/Promotion2.mp4');
@@ -132,99 +122,25 @@ const PROMO_VIDEO = require('../../assets/Vedios/Promotion2.mp4');
 const PROMO_HEIGHT = 170;
 
 const PRODUCTS: Product[] = [
-  {
-    id: 'p1',
-    name: 'Swarna Paddy Seeds',
-    category: 'Seeds',
-    price: 450,
-    unit: '5 kg',
-    icon: 'grain',
-  },
-  {
-    id: 'p2',
-    name: 'Hybrid Cotton Seeds',
-    category: 'Seeds',
-    price: 820,
-    unit: '450 g',
-    icon: 'flower-outline',
-  },
-  {
-    id: 'p3',
-    name: 'Urea Fertilizer',
-    category: 'Fertilizers',
-    price: 266,
-    unit: '45 kg',
-    icon: 'bag-personal-outline',
-  },
-  {
-    id: 'p4',
-    name: 'DAP Fertilizer',
-    category: 'Fertilizers',
-    price: 1350,
-    unit: '50 kg',
-    icon: 'bag-personal-outline',
-  },
-  {
-    id: 'p5',
-    name: 'Hand Sprayer 16L',
-    category: 'Farming Tools',
-    price: 1199,
-    unit: '1 pc',
-    icon: 'spray',
-  },
-  {
-    id: 'p6',
-    name: 'Garden Sickle',
-    category: 'Farming Tools',
-    price: 180,
-    unit: '1 pc',
-    icon: 'content-cut',
-  },
-  {
-    id: 'p7',
-    name: 'Drip Irrigation Kit',
-    category: 'Irrigation',
-    price: 2499,
-    unit: '1 acre',
-    icon: 'water-pump',
-  },
-  {
-    id: 'p8',
-    name: 'Mini Power Tiller',
-    category: 'Machinery',
-    price: 32500,
-    unit: '1 pc',
-    icon: 'tractor',
-  },
-  {
-    id: 'p9',
-    name: 'Neem Oil Pesticide',
-    category: 'Pesticides',
-    price: 340,
-    unit: '1 L',
-    icon: 'bottle-tonic-outline',
-  },
-  {
-    id: 'p10',
-    name: 'Cattle Feed Mix',
-    category: 'Animal Feed',
-    price: 720,
-    unit: '25 kg',
-    icon: 'cow',
-  },
+  { id: 'p1', name: 'Swarna Paddy Seeds', category: 'Seeds', price: 450, unit: '5 kg', icon: 'grain' },
+  { id: 'p2', name: 'Hybrid Cotton Seeds', category: 'Seeds', price: 820, unit: '450 g', icon: 'flower-outline' },
+  { id: 'p3', name: 'Urea Fertilizer', category: 'Fertilizers', price: 266, unit: '45 kg', icon: 'bag-personal-outline' },
+  { id: 'p4', name: 'DAP Fertilizer', category: 'Fertilizers', price: 1350, unit: '50 kg', icon: 'bag-personal-outline' },
+  { id: 'p5', name: 'Hand Sprayer 16L', category: 'Farming Tools', price: 1199, unit: '1 pc', icon: 'spray' },
+  { id: 'p6', name: 'Garden Sickle', category: 'Farming Tools', price: 180, unit: '1 pc', icon: 'content-cut' },
+  { id: 'p7', name: 'Drip Irrigation Kit', category: 'Irrigation', price: 2499, unit: '1 acre', icon: 'water-pump' },
+  { id: 'p8', name: 'Mini Power Tiller', category: 'Machinery', price: 32500, unit: '1 pc', icon: 'tractor' },
+  { id: 'p9', name: 'Neem Oil Pesticide', category: 'Pesticides', price: 340, unit: '1 L', icon: 'bottle-tonic-outline' },
+  { id: 'p10', name: 'Cattle Feed Mix', category: 'Animal Feed', price: 720, unit: '25 kg', icon: 'cow' },
 ];
 
-const formatPrice = (n: number) =>
-  `₹${n.toLocaleString('en-IN')}`;
+const formatPrice = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 const cardShadow = {
   shadowColor: '#000',
   shadowOpacity: 0.05,
   shadowRadius: 8,
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
+  shadowOffset: { width: 0, height: 2 },
   elevation: 2,
 } as const;
 
@@ -239,10 +155,7 @@ function SectionTitle({
 }) {
   return (
     <View className="mb-3 mt-6 flex-row items-center justify-between">
-      <Text
-        className="text-[18px] font-extrabold"
-        style={{ color: INK }}
-      >
+      <Text className="text-[18px] font-extrabold" style={{ color: INK }}>
         {title}
       </Text>
 
@@ -251,10 +164,7 @@ function SectionTitle({
           accessibilityRole="button"
           accessibilityLabel={`${action} ${title}`}
         >
-          <Text
-            className="text-[13px] font-bold"
-            style={{ color: FOREST }}
-          >
+          <Text className="text-[13px] font-bold" style={{ color: FOREST }}>
             {action}
           </Text>
         </TouchableOpacity>
@@ -298,10 +208,7 @@ function CategoryItem({
         {c.image && !failed ? (
           <Image
             source={c.image}
-            style={{
-              width: '100%',
-              height: '100%',
-            }}
+            style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
             onError={() => setFailed(true)}
           />
@@ -350,13 +257,9 @@ function BannerSlider({
         const meta = Image.resolveAssetSource(b.source);
 
         const ratio =
-          meta?.width && meta?.height
-            ? meta.width / meta.height
-            : BANNER_RATIO;
+          meta?.width && meta?.height ? meta.width / meta.height : BANNER_RATIO;
 
-        const height = Math.round(
-          (width / ratio) * heightScale,
-        );
+        const height = Math.round((width / ratio) * heightScale);
 
         return (
           <TouchableOpacity
@@ -369,10 +272,7 @@ function BannerSlider({
           >
             <Image
               source={b.source}
-              style={{
-                width: '100%',
-                height: '100%',
-              }}
+              style={{ width: '100%', height: '100%' }}
               resizeMode={resizeMode}
             />
           </TouchableOpacity>
@@ -394,17 +294,11 @@ function PromoVideo({ width }: { width: number }) {
   return (
     <View
       className="overflow-hidden rounded-3xl bg-[#EEF5EA]"
-      style={{
-        width,
-        height: PROMO_HEIGHT,
-      }}
+      style={{ width, height: PROMO_HEIGHT }}
     >
       <VideoView
         player={player}
-        style={{
-          width: '100%',
-          height: '100%',
-        }}
+        style={{ width: '100%', height: '100%' }}
         contentFit="cover"
         nativeControls={false}
         allowsPictureInPicture={false}
@@ -429,10 +323,7 @@ function ProductCard({
   return (
     <View
       className="mb-4 rounded-3xl bg-white p-3"
-      style={{
-        width,
-        ...cardShadow,
-      }}
+      style={{ width, ...cardShadow }}
     >
       <View className="h-28 items-center justify-center overflow-hidden rounded-2xl bg-[#EEF5EA]">
         {p.image && !failed ? (
@@ -443,11 +334,7 @@ function ProductCard({
             onError={() => setFailed(true)}
           />
         ) : (
-          <MaterialCommunityIcons
-            name={p.icon}
-            size={44}
-            color={LEAF}
-          />
+          <MaterialCommunityIcons name={p.icon} size={44} color={LEAF} />
         )}
       </View>
 
@@ -459,17 +346,11 @@ function ProductCard({
         {p.name}
       </Text>
 
-      <Text
-        className="text-[12px]"
-        style={{ color: MUTED }}
-      >
+      <Text className="text-[12px]" style={{ color: MUTED }}>
         {p.category} • {p.unit}
       </Text>
 
-      <Text
-        className="mt-1 text-[16px] font-extrabold"
-        style={{ color: FOREST }}
-      >
+      <Text className="mt-1 text-[16px] font-extrabold" style={{ color: FOREST }}>
         {formatPrice(p.price)}
       </Text>
 
@@ -481,14 +362,44 @@ function ProductCard({
         accessibilityLabel={`Buy ${p.name} now`}
         onPress={() => onBuyNow(p)}
       >
-        <Text
-          className="text-[13px] font-extrabold"
-          style={{ color: INK }}
-        >
+        <Text className="text-[13px] font-extrabold" style={{ color: INK }}>
           Buy Now
         </Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+// ==================== JOIN DELIVERY BOY CARD ====================
+
+function JoinDeliveryCard({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      className="mt-6 flex-row items-center rounded-3xl p-4"
+      style={{ backgroundColor: FOREST, ...cardShadow }}
+      accessibilityRole="button"
+      accessibilityLabel="Join as a delivery boy"
+    >
+      <View
+        className="h-14 w-14 items-center justify-center rounded-full"
+        style={{ backgroundColor: AMBER }}
+      >
+        <MaterialCommunityIcons name="moped" size={30} color={INK} />
+      </View>
+
+      <View className="ml-3 flex-1">
+        <Text className="text-[16px] font-extrabold text-white">
+          Join as a Delivery Boy
+        </Text>
+        <Text className="mt-0.5 text-[12px]" style={{ color: '#CFE8D2' }}>
+          Earn by delivering farm products near you
+        </Text>
+      </View>
+
+      <MaterialCommunityIcons name="chevron-right" size={26} color="#FFFFFF" />
+    </TouchableOpacity>
   );
 }
 
@@ -500,7 +411,7 @@ export default function Shop() {
   const [query, setQuery] = useState('');
 
   const [currentScreen, setCurrentScreen] = useState<
-    'shop' | 'category' | 'checkout' | 'success'
+    'shop' | 'category' | 'checkout' | 'success' | 'deliveryForm'
   >('shop');
 
   const [checkoutReturnScreen, setCheckoutReturnScreen] =
@@ -511,8 +422,7 @@ export default function Shop() {
     apiCategory: '',
   });
 
-  const [selectedProduct, setSelectedProduct] =
-    useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   // Stores the response returned by the backend after placing an order.
   const [placedOrder, setPlacedOrder] =
@@ -604,6 +514,12 @@ export default function Shop() {
     );
   }
 
+  // ==================== DELIVERY BOY FORM SCREEN ====================
+
+  if (currentScreen === 'deliveryForm') {
+    return <DeliveryBoyForm onBack={() => setCurrentScreen('shop')} />;
+  }
+
   // ==================== SHOP HOME SCREEN ====================
 
   return (
@@ -621,11 +537,7 @@ export default function Shop() {
         className="h-12 flex-row items-center rounded-full bg-white px-4"
         style={cardShadow}
       >
-        <MaterialCommunityIcons
-          name="magnify"
-          size={22}
-          color={MUTED}
-        />
+        <MaterialCommunityIcons name="magnify" size={22} color={MUTED} />
 
         <TextInput
           value={query}
@@ -672,6 +584,9 @@ export default function Shop() {
         ))}
       </ScrollView>
 
+      {/* Join as delivery boy */}
+      <JoinDeliveryCard onPress={() => setCurrentScreen('deliveryForm')} />
+
       {/* Offers & Promotions */}
       <SectionTitle title="Offers & Promotions" />
 
@@ -680,29 +595,16 @@ export default function Shop() {
       {/* Trending */}
       <SectionTitle title="Trending Products" />
 
-      <BannerSlider
-        items={TRENDING_BANNERS}
-        width={bannerWidth}
-      />
+      <BannerSlider items={TRENDING_BANNERS} width={bannerWidth} />
 
       {/* Recommended products */}
-      <SectionTitle
-        title="Recommended Products"
-        action="See all"
-      />
+      <SectionTitle title="Recommended Products" action="See all" />
 
       {visible.length === 0 ? (
         <View className="items-center py-10">
-          <MaterialCommunityIcons
-            name="magnify-close"
-            size={36}
-            color={MUTED}
-          />
+          <MaterialCommunityIcons name="magnify-close" size={36} color={MUTED} />
 
-          <Text
-            className="mt-2 text-[14px]"
-            style={{ color: MUTED }}
-          >
+          <Text className="mt-2 text-[14px]" style={{ color: MUTED }}>
             No products match “{query}”. Try another name.
           </Text>
         </View>

@@ -15,20 +15,17 @@ import com.krishisathi.repository.OrderRepository;
 import com.krishisathi.repository.OrderStatusRepository;
 import com.krishisathi.repository.SellerProfileRepository;
 import com.krishisathi.repository.UserRepository;
-import com.mongodb.client.model.FindOneAndUpdateOptions;
-import com.mongodb.client.model.ReturnDocument;
 
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.bson.Document;
-import com.krishisathi.model.Order;
 
-import org.springframework.data.mongodb.core.MongoTemplate;
+import com.krishisathi.model.Order;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +37,6 @@ public class FarmershopService {
         private final UserRepository userRepository;
         private final OrderRepository orderRepository;
         private final OrderStatusRepository orderStatusRepository;
-        private final MongoTemplate mongoTemplate;
 
         public Page<FarmerShopProductResponse> getProductsByCategory(
                         String category,
@@ -118,12 +114,36 @@ public class FarmershopService {
                 return "You can buy products in your district.";
         }
         // =====================================================
-        // PLACE ORDER
+        // PLACE ORDER WITH IDEMPOTENCY KEY
         // =====================================================
 
-        public Order placeOrder(String farmerEmail, PlaceOrderRequest request) {
+        public Order placeOrder(
+                        String farmerEmail,
+                        PlaceOrderRequest request,
+                        String idempotencyKey) {
 
-                // 1. Find logged-in farmer
+                // 1. Validate idempotency key
+                if (idempotencyKey == null || idempotencyKey.isBlank()) {
+                        throw new RuntimeException("Idempotency key is required");
+                }
+
+                // 2. Check whether this order already exists
+                Optional<Order> existingOrder = orderRepository.findById(idempotencyKey);
+
+                if (existingOrder.isPresent()) {
+
+                        Order order = existingOrder.get();
+
+                        // Prevent another farmer from accessing this order
+                        if (!order.getFarmerId().equals(farmerEmail)) {
+                                throw new RuntimeException("Invalid idempotency key");
+                        }
+
+                        // Return the existing order instead of creating another
+                        return order;
+                }
+
+                // 3. Find logged-in farmer
                 User farmer = userRepository.findByEmail(farmerEmail)
                                 .orElseThrow(() -> new RuntimeException("Farmer account not found"));
 
@@ -131,12 +151,12 @@ public class FarmershopService {
                         throw new RuntimeException("Only farmers can place orders");
                 }
 
-                // 2. Find farmer profile
+                // 4. Find farmer profile
                 FarmerProfile profile = farmerProfileRepository
                                 .findByUserId(farmer.getEmail())
                                 .orElseThrow(() -> new RuntimeException("Farmer profile not found"));
 
-                // 3. Verify delivery address belongs to farmer
+                // 5. Verify delivery address belongs to farmer
                 if (profile.getAddresses() == null || profile.getAddresses().isEmpty()) {
                         throw new RuntimeException("Please add a delivery address first");
                 }
@@ -147,18 +167,15 @@ public class FarmershopService {
                                 .findFirst()
                                 .orElseThrow(() -> new RuntimeException("Delivery address not found"));
 
-                // 4. Find product
+                // 6. Find product
                 CatalogProduct product = catalogProductRepository
                                 .findById(request.getProductId())
                                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-                // 5. Generate sequential order ID
-                String orderId = generateOrderId();
-
-                // 6. Create order
+                // 7. Create order using frontend idempotency key as Order ID
                 Order order = new Order();
 
-                order.setId(orderId);
+                order.setId(idempotencyKey); // UUID becomes MongoDB _id
                 order.setFarmerId(farmer.getEmail());
 
                 order.setProductId(product.getId());
@@ -167,8 +184,6 @@ public class FarmershopService {
                 order.setProductQuantity(
                                 product.getQuantity() + " " + product.getQuantityUnit());
 
-                // Accept exact fee values from Postman
-                // No backend total calculation
                 order.setProductTotal(request.getProductTotal());
                 order.setPlatformFee(request.getPlatformFee());
                 order.setDeliveryFee(request.getDeliveryFee());
@@ -179,42 +194,19 @@ public class FarmershopService {
 
                 order.setFarmerDeliveryAddressId(address.getAddressId());
 
-                // 7. Save order document
+                // 8. Save order
                 orderRepository.save(order);
 
-                // 8. Create initial order status
+                // 9. Create initial order status
                 OrderStatus orderStatus = new OrderStatus();
 
-                orderStatus.setId(orderId);
-                orderStatus.setOrderId(orderId);
+                orderStatus.setId(idempotencyKey);
+                orderStatus.setOrderId(idempotencyKey);
                 orderStatus.setOrderStatus("PLACED");
 
-                // 9. Save order status document
                 orderStatusRepository.save(orderStatus);
 
                 return order;
-        }
-
-        // =====================================================
-        // GENERATE SEQUENTIAL ORDER ID
-        // ORDER01, ORDER02, ORDER03...
-        // =====================================================
-
-        private String generateOrderId() {
-
-                Document counter = mongoTemplate.getCollection("counters")
-                                .findOneAndUpdate(
-                                                new Document("_id", "order_sequence"),
-                                                new Document("$inc", new Document("sequence", 1)),
-                                                new FindOneAndUpdateOptions()
-                                                                .returnDocument(ReturnDocument.AFTER)
-                                                                .upsert(true));
-
-                long sequence = counter
-                                .get("sequence", Number.class)
-                                .longValue();
-
-                return String.format("ORDER%02d", sequence);
         }
 
 }

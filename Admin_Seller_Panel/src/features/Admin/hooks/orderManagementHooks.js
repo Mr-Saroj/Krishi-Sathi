@@ -1,75 +1,89 @@
-// orderManagementHooks.js — state, derived data and actions for Order Management
-import { useMemo, useState } from 'react';
-import { useSimulatedLoading, useToast } from '../hooks/componentshook';
-import {
-  INITIAL_ORDERS, EMPTY_FILTERS, isDelayed, isCancelledOrReturned,
-  needsAttention, filterOrders, sellerProgress,
-} from '../utils/orderManagementUtils';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useToast } from "../hooks/componentshook";
+import { getPlacedOrders } from "../services/adminOrderService";
 
 export const useOrderManagement = () => {
-  const isLoading = useSimulatedLoading(650);
   const { toast, notify } = useToast();
 
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
-  const [tab, setTab] = useState('all');
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
 
-  const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
-  const selected = orders.find((o) => o.id === selectedId) || null;
+  const fetchPlacedOrders = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-  const counts = useMemo(
-    () => ({
-      delayed: orders.filter(isDelayed).length,
-      issues: orders.filter(isCancelledOrReturned).length,
-      disputes: orders.filter(needsAttention).length,
-    }),
-    [orders]
-  );
-  const visibleOrders = useMemo(() => filterOrders(orders, filters, tab), [orders, filters, tab]);
-  const progress = useMemo(() => sellerProgress(orders), [orders]);
+      const data = await getPlacedOrders();
 
-  const updateOrder = (id, fn, message) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? fn(o) : o)));
-    if (message) notify(message);
-  };
+      setOrders(data);
+    } catch (err) {
+      console.error("Failed to fetch placed orders:", err);
 
-  const resolveDispute = (id, favour) =>
-    updateOrder(
-      id,
-      (o) => ({
-        ...o,
-        dispute: { ...o.dispute, status: 'RESOLVED', outcome: favour },
-        refundStatus:
-          favour === 'CUSTOMER' && o.payment === 'PAID' && o.refundStatus === 'NONE'
-            ? 'REQUESTED'
-            : o.refundStatus,
-      }),
-      favour === 'CUSTOMER'
-        ? 'Dispute resolved in favour of the customer.'
-        : 'Dispute resolved in favour of the seller.'
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Unable to load placed orders. Please try again.";
+
+      setError(message);
+      notify(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [notify]);
+
+  useEffect(() => {
+    fetchPlacedOrders();
+  }, [fetchPlacedOrders]);
+
+  // Selected order for the View drawer.
+  const selected = useMemo(() => {
+    return orders.find((order) => order.id === selectedId) || null;
+  }, [orders, selectedId]);
+
+  // Search orders using fields actually returned by your API.
+  const visibleOrders = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
+    if (!search) return orders;
+
+    return orders.filter((order) =>
+      [
+        order.id,
+        order.farmerId,
+        order.productId,
+        order.productQuantity,
+        order.quantity,
+        order.paymentMode,
+        order.paymentStatus,
+        order.farmerDeliveryAddressId,
+      ].some((value) =>
+        String(value ?? "").toLowerCase().includes(search)
+      )
     );
+  }, [orders, query]);
 
-  const approveRefund = (id) => {
-    if (!window.confirm('Approve this refund? The amount will be returned to the customer.')) return;
-    updateOrder(id, (o) => ({ ...o, payment: 'REFUNDED', refundStatus: 'APPROVED' }), 'Refund approved.');
-  };
+  // Calculate total value using totalSumFee.
+  const totalOrderValue = useMemo(() => {
+    return orders.reduce(
+      (total, order) => total + Number(order.totalSumFee || 0),
+      0
+    );
+  }, [orders]);
 
   return {
     isLoading,
+    error,
     toast,
     orders,
-    tab,
-    setTab,
-    filters,
-    setFilters,
-    setFilter,
+    visibleOrders,
+    query,
+    setQuery,
     selected,
     setSelectedId,
-    counts,
-    visibleOrders,
-    progress,
-    resolveDispute,
-    approveRefund,
+    totalOrderValue,
+    refreshOrders: fetchPlacedOrders,
   };
 };

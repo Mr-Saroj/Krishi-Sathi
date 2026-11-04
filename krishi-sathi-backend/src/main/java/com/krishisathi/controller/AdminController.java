@@ -8,6 +8,7 @@ import com.krishisathi.dto.SellerApprovalRequest;
 import com.krishisathi.dto.SellerDetailsResponse;
 import com.krishisathi.model.CatalogProduct;
 import com.krishisathi.service.AdminCatalogService;
+import com.krishisathi.service.AdminOrderManageService;
 import com.krishisathi.service.AdminSellerService;
 
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import com.krishisathi.model.Order;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -30,6 +32,7 @@ public class AdminController {
 
         private final AdminSellerService adminSellerService;
         private final AdminCatalogService adminCatalogService;
+        private final AdminOrderManageService adminOrderManageService;
 
         @GetMapping("/sellers/pending")
         public ResponseEntity<CursorPageResponse<PendingSellerResponse>> getPendingSellers(
@@ -118,5 +121,13 @@ public class AdminController {
                                 adminCatalogService.updateCatalogProductPrice(
                                                 productId,
                                                 request));
+        }
+
+        // Get all placed orders
+        @GetMapping("/orders/placed")
+        public ResponseEntity<List<Order>> getPlacedOrders() {
+
+                return ResponseEntity.ok(
+                                adminOrderManageService.getPlacedOrders());
         }
 }
