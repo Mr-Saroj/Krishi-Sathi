@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 
 import {
@@ -15,9 +16,9 @@ import {
   getFarmerDetails,
   type FarmerDetails,
 } from "../../src/farmer/services/farmerAddressService";
-import FarmerAddress from "../../src/farmer/components/FarmerAddressScreen";
 
-// import FarmerAddress from "../../src/farmer/components/FarmerAddress";
+import FarmerAddress from "../../src/farmer/components/FarmerAddressScreen";
+import OrderList from "../../src/farmer/components/OrderList";
 
 type IconName =
   React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -84,8 +85,8 @@ export default function Profile() {
   const [farmer, setFarmer] = useState<FarmerDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Controls whether the address component is displayed.
   const [showAddress, setShowAddress] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
 
   // FETCH LOGGED-IN FARMER DETAILS
   useEffect(() => {
@@ -125,17 +126,30 @@ export default function Profile() {
     };
   }, []);
 
-  // OPEN ADDRESS COMPONENT
+  // OPEN ADDRESS SCREEN
   const handleEditAddress = () => {
     setShowAddress(true);
   };
 
-  // Show the address component instead of the profile.
-  // The Profile component remains mounted, so its farmer state is preserved.
+  // OPEN ORDER HISTORY
+  const handleOrderHistory = () => {
+    setShowOrders(true);
+  };
+
+  // SHOW ADDRESS SCREEN
   if (showAddress) {
     return (
       <FarmerAddress
         onBack={() => setShowAddress(false)}
+      />
+    );
+  }
+
+  // SHOW ORDER HISTORY SCREEN
+  if (showOrders) {
+    return (
+      <OrderList
+        onBack={() => setShowOrders(false)}
       />
     );
   }
@@ -202,6 +216,19 @@ export default function Profile() {
       </Text>
 
       <View className="mb-5 rounded-3xl bg-white px-4">
+
+        {/* ORDER HISTORY */}
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={handleOrderHistory}
+        >
+          <Row
+            icon="clipboard-list-outline"
+            label="Order History"
+            value="View your previous purchases"
+          />
+        </TouchableOpacity>
+
         {/* MY ADDRESSES */}
         <TouchableOpacity
           activeOpacity={0.75}

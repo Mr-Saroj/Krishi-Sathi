@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 
+// Back to your original: nothing about seller / delivery boy is kept in the order.
 @Data
 @Document(collection = "orders")
 public class Order {

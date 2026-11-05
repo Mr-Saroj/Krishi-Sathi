@@ -11,4 +11,10 @@ public interface DeliveryBoyRepository
     Optional<DeliveryBoy> findByFarmerEmail(String farmerEmail);
 
     boolean existsByFarmerEmail(String farmerEmail);
+    Optional<DeliveryBoy> findByMobileNumber(String mobileNumber);
+   
+
+   
+
+    
 }

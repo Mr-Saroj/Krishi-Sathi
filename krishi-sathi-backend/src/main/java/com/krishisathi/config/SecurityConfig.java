@@ -36,7 +36,7 @@ public class SecurityConfig {
 
                                 .authorizeHttpRequests(auth -> auth
 
-                                                // Public authentication APIs
+                                                // Public APIs
                                                 .requestMatchers(
                                                                 "/api/auth/register",
                                                                 "/api/auth/login",
@@ -45,16 +45,22 @@ public class SecurityConfig {
                                                                 "/api/farmer/delivery-boy/check-eligibility")
                                                 .permitAll()
 
-                                                // Public disease prediction API, if intended
-                                                .requestMatchers(
-                                                                "/api/disease/predict")
+                                                .requestMatchers("/api/disease/predict")
                                                 .permitAll()
 
-                                                // Only ADMIN can access admin APIs
                                                 .requestMatchers("/api/admin/**")
                                                 .hasAuthority("ADMIN")
 
-                                                // Only FARMER-authorized users
+                                                // 1. Farmer-only exception inside the delivery-boy path
+                                                .requestMatchers("/api/farmer/delivery-boy/register")
+                                                .hasAuthority("FARMER")
+
+                                                // 2. Everything else under delivery-boy is for delivery boys
+                                                // (new delivery boy APIs are covered automatically)
+                                                .requestMatchers("/api/farmer/delivery-boy/**")
+                                                .hasAuthority("DELIVERY_BOY")
+
+                                                // 3. General farmer rule, must come AFTER the two rules above
                                                 .requestMatchers("/api/farmer/**",
                                                                 "/api/chat/**",
                                                                 "/api/farmer/shop/**")
@@ -63,7 +69,6 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/seller/**")
                                                 .hasAuthority("SELLER")
 
-                                                // All remaining endpoints require authentication
                                                 .anyRequest().authenticated())
 
                                 .oauth2ResourceServer(oauth2 -> oauth2

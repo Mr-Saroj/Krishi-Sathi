@@ -4,9 +4,11 @@ import { useRouter } from "expo-router";
 
 import { useAuth } from "./useAuth";
 
-type Errors = Partial<
-  Record<"mobile" | "password", string>
->;
+export type LoginRole = "farmer" | "delivery";
+
+type Errors = Partial<Record<"mobile" | "email" | "password", string>>;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const useLogin = () => {
   const router = useRouter();
@@ -17,10 +19,19 @@ export const useLogin = () => {
   // FORM STATE
   // =========================
 
+  const [role, setRoleState] = useState<LoginRole>("farmer");
   const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+
+  // Switch role, clear errors and the password
+  const setRole = (newRole: LoginRole) => {
+    setRoleState(newRole);
+    setErrors({});
+    setPassword("");
+  };
 
   // =========================
   // VALIDATION
@@ -29,13 +40,16 @@ export const useLogin = () => {
   const validate = () => {
     const e: Errors = {};
 
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      e.mobile = "Enter a 10-digit mobile number";
+    if (role === "farmer") {
+      if (!/^[6-9]\d{9}$/.test(mobile)) {
+        e.mobile = "Enter a valid 10-digit mobile number";
+      }
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      e.email = "Enter a valid email address";
     }
 
     if (password.length < 6) {
-      e.password =
-        "Password must be at least 6 characters";
+      e.password = "Password must be at least 6 characters";
     }
 
     setErrors(e);
@@ -48,26 +62,29 @@ export const useLogin = () => {
   // =========================
 
   const onLogin = async () => {
-    if (!validate()) {
+    if (loading || !validate()) {
       return;
     }
 
-    const result = await login({
-      mobileNumber: mobile,
-      password: password,
-    });
+    const result = await login(
+      role === "farmer"
+        ? {
+            role: "FARMER",
+            mobileNumber: mobile,
+            password,
+          }
+        : {
+            role: "DELIVERY_BOY",
+            email: email.trim().toLowerCase(),
+            password,
+          }
+    );
 
-    // Login failed
     if (!result.success) {
-      Alert.alert(
-        "Login Failed",
-        result.message
-      );
-
+      Alert.alert("Login Failed", result.message);
       return;
     }
 
-    // Login successful
     Alert.alert(
       "Login Successful",
       `Welcome back, ${result.data?.fullName}!`,
@@ -75,7 +92,11 @@ export const useLogin = () => {
         {
           text: "OK",
           onPress: () => {
-            router.replace("/FarmerDashboard" as any);
+            router.replace(
+              (role === "farmer"
+                ? "/FarmerDashboard"
+                : "/DeliveryboyDashboard") as any
+            );
           },
         },
       ]
@@ -83,8 +104,14 @@ export const useLogin = () => {
   };
 
   return {
+    role,
+    setRole,
+
     mobile,
     setMobile,
+
+    email,
+    setEmail,
 
     password,
     setPassword,

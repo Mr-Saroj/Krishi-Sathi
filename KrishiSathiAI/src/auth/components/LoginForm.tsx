@@ -1,4 +1,3 @@
-
 import React from "react";
 
 import {
@@ -12,10 +11,15 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 
-import { useLogin } from "../hooks/useLogin";
+import { LoginRole, useLogin } from "../hooks/useLogin";
 
 const PLACEHOLDER = "#8FA396";
 const MUTED = "#5E7365";
+const ACTIVE_ICON = "#FFFFFF";
+
+// =========================
+// FIELD WRAPPER
+// =========================
 
 function Field({
   label,
@@ -41,18 +45,84 @@ function Field({
       </View>
 
       {!!error && (
-        <Text className="mt-1 text-[13px] text-red-600">
-          {error}
-        </Text>
+        <Text className="mt-1 text-[13px] text-red-600">{error}</Text>
       )}
     </View>
   );
 }
 
+// =========================
+// ROLE TOGGLE
+// =========================
+
+const ROLES: {
+  key: LoginRole;
+  label: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+}[] = [
+  { key: "farmer", label: "Farmer", icon: "sprout-outline" },
+  { key: "delivery", label: "Delivery Boy", icon: "moped-outline" },
+];
+
+function RoleToggle({
+  role,
+  onChange,
+  disabled,
+}: {
+  role: LoginRole;
+  onChange: (role: LoginRole) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View className="mb-6 h-14 flex-row rounded-2xl bg-paper p-1 border-[1.5px] border-line">
+      {ROLES.map((item) => {
+        const active = role === item.key;
+
+        return (
+          <TouchableOpacity
+            key={item.key}
+            className={`flex-1 flex-row items-center justify-center rounded-xl ${
+              active ? "bg-forest" : "bg-transparent"
+            }`}
+            onPress={() => onChange(item.key)}
+            disabled={disabled}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`Login as ${item.label}`}
+          >
+            <MaterialCommunityIcons
+              name={item.icon}
+              size={20}
+              color={active ? ACTIVE_ICON : MUTED}
+            />
+
+            <Text
+              className={`ml-2 text-[15px] font-bold ${
+                active ? "text-white" : "text-ink"
+              }`}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+// =========================
+// LOGIN FORM
+// =========================
+
 export default function LoginForm() {
   const {
+    role,
+    setRole,
     mobile,
     setMobile,
+    email,
+    setEmail,
     password,
     setPassword,
     showPassword,
@@ -62,31 +132,64 @@ export default function LoginForm() {
     loading,
   } = useLogin();
 
+  const isFarmer = role === "farmer";
+
   return (
     <View>
-      {/* MOBILE NUMBER */}
+      {/* ROLE TOGGLE */}
 
-      <Field label="Mobile number" error={errors.mobile}>
-        <Text className="text-base font-semibold text-ink">
-          +91
-        </Text>
+      <RoleToggle role={role} onChange={setRole} disabled={loading} />
 
-        <View className="mx-3 h-6 w-px bg-line" />
+      <Text className="mb-5 text-sm text-ink">
+        {isFarmer
+          ? "Log in to manage your farm, products and orders."
+          : "Log in to view and manage your deliveries."}
+      </Text>
 
-        <TextInput
-          className="h-full flex-1 text-base text-ink"
-          placeholder="Enter Your Registered mobile number"
-          placeholderTextColor={PLACEHOLDER}
-          value={mobile}
-          onChangeText={(text) =>
-            setMobile(text.replace(/\D/g, "").slice(0, 10))
-          }
-          keyboardType="number-pad"
-          maxLength={10}
-          textContentType="telephoneNumber"
-          autoComplete="tel"
-        />
-      </Field>
+      {/* MOBILE (FARMER) or EMAIL (DELIVERY BOY) */}
+
+      {isFarmer ? (
+        <Field label="Mobile number" error={errors.mobile}>
+          <Text className="text-base font-semibold text-ink">+91</Text>
+
+          <View className="mx-3 h-6 w-px bg-line" />
+
+          <TextInput
+            className="h-full flex-1 text-base text-ink"
+            placeholder="Enter your registered mobile number"
+            placeholderTextColor={PLACEHOLDER}
+            value={mobile}
+            onChangeText={(text) =>
+              setMobile(text.replace(/\D/g, "").slice(0, 10))
+            }
+            keyboardType="number-pad"
+            maxLength={10}
+            textContentType="telephoneNumber"
+            autoComplete="tel"
+          />
+        </Field>
+      ) : (
+        <Field label="Email address" error={errors.email}>
+          <MaterialCommunityIcons
+            name="email-outline"
+            size={22}
+            color={MUTED}
+          />
+
+          <TextInput
+            className="ml-3 h-full flex-1 text-base text-ink"
+            placeholder="Enter your registered email"
+            placeholderTextColor={PLACEHOLDER}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="emailAddress"
+            autoComplete="email"
+          />
+        </Field>
+      )}
 
       {/* PASSWORD */}
 
@@ -112,9 +215,7 @@ export default function LoginForm() {
         />
 
         <TouchableOpacity
-          onPress={() =>
-            setShowPassword((value) => !value)
-          }
+          onPress={() => setShowPassword((value) => !value)}
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel={
@@ -122,11 +223,7 @@ export default function LoginForm() {
           }
         >
           <MaterialCommunityIcons
-            name={
-              showPassword
-                ? "eye-off-outline"
-                : "eye-outline"
-            }
+            name={showPassword ? "eye-off-outline" : "eye-outline"}
             size={22}
             color={MUTED}
           />
@@ -152,13 +249,15 @@ export default function LoginForm() {
         disabled={loading}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Log in"
+        accessibilityLabel={
+          isFarmer ? "Log in as farmer" : "Log in as delivery boy"
+        }
       >
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text className="text-lg font-bold text-white">
-            Log in
+            {isFarmer ? "Log in as Farmer" : "Log in as Delivery Boy"}
           </Text>
         )}
       </TouchableOpacity>

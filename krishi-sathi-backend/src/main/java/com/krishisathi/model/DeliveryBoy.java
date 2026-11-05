@@ -1,14 +1,16 @@
 package com.krishisathi.model;
 
-
-
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.time.LocalDateTime;
-
+/**
+ * Collection: delivery_boy_list
+ * Holds the lightweight, frequently-read fields plus the login password.
+ * Everything else lives in delivery_boy_profile.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,18 +22,23 @@ public class DeliveryBoy {
     @Id
     private String id;
 
+    private String fullName;
+
+    @Indexed(unique = true)
+    private String mobileNumber;
+
     @Indexed(unique = true)
     private String farmerEmail;
 
-    private String city;
+    private String password; // BCrypt-hashed, never return this in API responses
 
-    private String address;
+    // Stored in MongoDB as "isOnline"
+    @Field("isOnline")
+    @Builder.Default
+    private boolean online = false;
 
-    private String pincode;
-
-    private String vehicleType;
-
-    private String password;
-
-    private LocalDateTime createdAt;
+    // Stored in MongoDB as "isBusy"
+    @Field("isBusy")
+    @Builder.Default
+    private boolean busy = false;
 }

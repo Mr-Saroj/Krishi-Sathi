@@ -319,9 +319,7 @@ export default function Checkout({
                                 {formatPrice(unitPrice)}
                             </Text>
 
-                            <Text className="mt-1 text-[10px] text-gray-400">
-                                ID: {productId}
-                            </Text>
+
                         </View>
                     </View>
 

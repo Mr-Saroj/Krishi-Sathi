@@ -24,6 +24,11 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import com.krishisathi.model.Order;
+import com.krishisathi.model.OrderAssignment;
+import com.krishisathi.dto.AvailablePersonResponse;
+import com.krishisathi.dto.AssignSellerRequest;
+import com.krishisathi.dto.AssignDeliveryBoyRequest;
+import com.krishisathi.dto.AssignmentResponse;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -129,5 +134,34 @@ public class AdminController {
 
                 return ResponseEntity.ok(
                                 adminOrderManageService.getPlacedOrders());
+        }
+
+        // @GetMapping("/orders/assignments")
+        // public ResponseEntity<List<OrderAssignment>> getPlacedOrderAssignments() {
+        //         return ResponseEntity.ok(adminOrderManageService.getPlacedOrderAssignments());
+        // }
+
+        @GetMapping("/orders/{orderId}/available-sellers")
+        public ResponseEntity<List<AvailablePersonResponse>> getAvailableSellers(@PathVariable String orderId) {
+                return ResponseEntity.ok(adminOrderManageService.getAvailableSellers(orderId));
+        }
+
+        @GetMapping("/orders/{orderId}/available-delivery-boys")
+        public ResponseEntity<List<AvailablePersonResponse>> getAvailableDeliveryBoys(@PathVariable String orderId) {
+                return ResponseEntity.ok(adminOrderManageService.getAvailableDeliveryBoys(orderId));
+        }
+
+        @PutMapping("/orders/{orderId}/assign-seller")
+        public ResponseEntity<OrderAssignment> assignSeller(
+                        @PathVariable String orderId,
+                        @Valid @RequestBody AssignSellerRequest request) {
+                return ResponseEntity.ok(adminOrderManageService.assignSeller(orderId, request.sellerId()));
+        }
+
+        @PutMapping("/orders/{orderId}/assign-delivery-boy")
+        public ResponseEntity<OrderAssignment> assignDeliveryBoy(
+                        @PathVariable String orderId,
+                        @Valid @RequestBody AssignDeliveryBoyRequest request) {
+                return ResponseEntity.ok(adminOrderManageService.assignDeliveryBoy(orderId, request.deliveryBoyId()));
         }
 }

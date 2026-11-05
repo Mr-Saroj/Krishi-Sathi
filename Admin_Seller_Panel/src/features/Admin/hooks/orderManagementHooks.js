@@ -1,6 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "../hooks/componentshook";
-import { getPlacedOrders } from "../services/adminOrderService";
+import {
+  getPlacedOrders,
+  getOrderAssignments,
+  getAvailableSellers,
+  getAvailableDeliveryBoys,
+  assignSellerToOrder,
+  assignDeliveryBoyToOrder,
+} from "../services/adminOrderService";
+
+// order_assignments is flat (sellerId, sellerName, ...).
+// The UI uses order.seller / order.deliveryBoy objects, so convert here.
+const toAssignedFields = (a) => ({
+  seller: a?.sellerId
+    ? { id: a.sellerId, name: a.sellerName, phone: a.sellerPhone }
+    : null,
+  deliveryBoy: a?.deliveryBoyId
+    ? { id: a.deliveryBoyId, name: a.deliveryBoyName, phone: a.deliveryBoyPhone }
+    : null,
+});
 
 export const useOrderManagement = () => {
   const { toast, notify } = useToast();
@@ -16,9 +34,20 @@ export const useOrderManagement = () => {
       setIsLoading(true);
       setError("");
 
-      const data = await getPlacedOrders();
+      // Orders and their assignments come from two collections; load both.
+      const [data, assignments] = await Promise.all([
+        getPlacedOrders(),
+        getOrderAssignments().catch(() => []), // orders still load if this fails
+      ]);
 
-      setOrders(data);
+      const byOrderId = new Map(assignments.map((a) => [a.orderId, a]));
+
+      setOrders(
+        data.map((order) => ({
+          ...order,
+          ...toAssignedFields(byOrderId.get(order.id)),
+        }))
+      );
     } catch (err) {
       console.error("Failed to fetch placed orders:", err);
 
@@ -38,12 +67,10 @@ export const useOrderManagement = () => {
     fetchPlacedOrders();
   }, [fetchPlacedOrders]);
 
-  // Selected order for the View drawer.
   const selected = useMemo(() => {
     return orders.find((order) => order.id === selectedId) || null;
   }, [orders, selectedId]);
 
-  // Search orders using fields actually returned by your API.
   const visibleOrders = useMemo(() => {
     const search = query.trim().toLowerCase();
 
@@ -59,19 +86,46 @@ export const useOrderManagement = () => {
         order.paymentMode,
         order.paymentStatus,
         order.farmerDeliveryAddressId,
+        order.seller?.name,
+        order.deliveryBoy?.name,
       ].some((value) =>
         String(value ?? "").toLowerCase().includes(search)
       )
     );
   }, [orders, query]);
 
-  // Calculate total value using totalSumFee.
   const totalOrderValue = useMemo(() => {
     return orders.reduce(
       (total, order) => total + Number(order.totalSumFee || 0),
       0
     );
   }, [orders]);
+
+  // ---------- Seller / delivery boy assignment ----------
+
+  const patchOrder = (orderId, patch) =>
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, ...patch } : o))
+    );
+
+  const loadSellers = (orderId) => getAvailableSellers(orderId);
+  const loadDeliveryBoys = (orderId) => getAvailableDeliveryBoys(orderId);
+
+  const assignSeller = async (orderId, sellerId) => {
+    const assignment = await assignSellerToOrder(orderId, sellerId);
+    patchOrder(orderId, toAssignedFields(assignment));
+    notify("Seller assigned successfully");
+  };
+
+  const assignDeliveryBoy = async (orderId, deliveryBoyId) => {
+    await assignDeliveryBoyToOrder(orderId, deliveryBoyId);
+
+    // Order is now CONFIRMED on the backend, so remove it from the Placed list
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setSelectedId(null);
+
+    notify("Order confirmed. Seller and delivery boy assigned.");
+  };
 
   return {
     isLoading,
@@ -85,5 +139,9 @@ export const useOrderManagement = () => {
     setSelectedId,
     totalOrderValue,
     refreshOrders: fetchPlacedOrders,
+    loadSellers,
+    loadDeliveryBoys,
+    assignSeller,
+    assignDeliveryBoy,
   };
 };

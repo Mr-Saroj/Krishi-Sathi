@@ -4,7 +4,7 @@ import axios from "axios";
 import {
   registerFarmer,
   RegisterData,
-  loginFarmer,
+  loginUser,
   LoginData,
 } from "../services/authService";
 
@@ -15,7 +15,7 @@ export const useAuth = () => {
   const [serverError, setServerError] = useState("");
 
   // =========================
-  // REGISTER
+  // REGISTER (FARMER)
   // =========================
 
   const register = async (data: RegisterData) => {
@@ -47,17 +47,14 @@ export const useAuth = () => {
 
       setServerError(message);
 
-      return {
-        success: false,
-        message,
-      };
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
   };
 
   // =========================
-  // LOGIN
+  // LOGIN (FARMER + DELIVERY BOY)
   // =========================
 
   const login = async (data: LoginData) => {
@@ -65,9 +62,8 @@ export const useAuth = () => {
     setServerError("");
 
     try {
-      const response = await loginFarmer(data);
+      const response = await loginUser(data);
 
-      // Save authentication information
       await saveAuthData(
         response.token,
         response.role,
@@ -95,10 +91,7 @@ export const useAuth = () => {
 
       setServerError(message);
 
-      return {
-        success: false,
-        message,
-      };
+      return { success: false, message };
     } finally {
       setLoading(false);
     }

@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.krishisathi.dto.DeliveryBoyOnlineStatusRequest;
 
 import java.util.Map;
 
@@ -22,43 +23,59 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DeliveryBoyController {
 
-    private final DeliveryBoyService deliveryBoyService;
+        private final DeliveryBoyService deliveryBoyService;
 
-    // 1. Check delivery-boy eligibility using city
-    @PostMapping("/check-eligibility")
-    @PreAuthorize("hasRole('FARMER')")
-    public ResponseEntity<String> checkEligibility(
-            @Valid @RequestBody DeliveryBoyEligibilityDto request) {
+        // 1. Check delivery-boy eligibility using city
+        @PostMapping("/check-eligibility")
+        @PreAuthorize("hasRole('FARMER')")
+        public ResponseEntity<String> checkEligibility(
+                        @Valid @RequestBody DeliveryBoyEligibilityDto request) {
 
-        return ResponseEntity.ok(
-                deliveryBoyService.checkEligibility(request)
-        );
-    }
+                return ResponseEntity.ok(
+                                deliveryBoyService.checkEligibility(request));
+        }
 
-    // 2. Register farmer as a delivery boy
-    @PostMapping("/register")
-    @PreAuthorize("hasRole('FARMER')")
-    public ResponseEntity<?> register(
-            @Valid @RequestBody DeliveryBoyRegisterRequest request,
-            Authentication authentication
-    ) {
+        // 2. Register farmer as a delivery boy
+        @PostMapping("/register")
+        @PreAuthorize("hasRole('FARMER')")
+        public ResponseEntity<?> register(
+                        @Valid @RequestBody DeliveryBoyRegisterRequest request,
+                        Authentication authentication) {
 
-        // Extract farmer email from JWT subject
-        String farmerEmail = authentication.getName();
+                // Extract farmer email from JWT subject
+                String farmerEmail = authentication.getName();
 
-        DeliveryBoy saved = deliveryBoyService.register(
-                farmerEmail,
-                request
-        );
+                DeliveryBoy saved = deliveryBoyService.register(
+                                farmerEmail,
+                                request);
 
-        // Do not expose the password or its encrypted hash
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                Map.of(
-                        "success", true,
-                        "message", "Successfully registered as a delivery boy",
-                        "deliveryBoyId", saved.getId(),
-                        "farmerEmail", saved.getFarmerEmail()
-                )
-        );
-    }
+                // Do not expose the password or its encrypted hash
+                return ResponseEntity.status(HttpStatus.CREATED).body(
+                                Map.of(
+                                                "success", true,
+                                                "message", "Successfully registered as a delivery boy",
+                                                "deliveryBoyId", saved.getId(),
+                                                "farmerEmail", saved.getFarmerEmail()));
+        }
+
+        @PatchMapping("/online-status")
+        public ResponseEntity<?> updateOnlineStatus(
+                        @Valid @RequestBody DeliveryBoyOnlineStatusRequest request,
+                        Authentication authentication) {
+
+                String farmerEmail = authentication.getName();
+
+                DeliveryBoy updated = deliveryBoyService.updateOnlineStatus(
+                                farmerEmail,
+                                request.getOnline());
+
+                return ResponseEntity.ok(
+                                Map.of(
+                                                "success", true,
+                                                "message", updated.isOnline()
+                                                                ? "You are now online"
+                                                                : "You are now offline",
+                                                "isOnline", updated.isOnline(),
+                                                "isBusy", updated.isBusy()));
+        }
 }

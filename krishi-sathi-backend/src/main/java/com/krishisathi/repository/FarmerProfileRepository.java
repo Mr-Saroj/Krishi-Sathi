@@ -10,4 +10,5 @@ public interface FarmerProfileRepository
         extends MongoRepository<FarmerProfile, String> {
 
     Optional<FarmerProfile> findByUserId(String userId);
+    Optional<FarmerProfile> findByAddresses_AddressId(String addressId);
 }

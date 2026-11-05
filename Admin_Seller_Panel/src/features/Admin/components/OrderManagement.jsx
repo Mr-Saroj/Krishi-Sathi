@@ -16,6 +16,7 @@ import {
   Toast,
 } from './components';
 
+import AssignPicker from './AssignPicker';
 import OrderManagementSkeleton from '../Skeliton/OrderManagementSkeleton';
 import { useOrderManagement } from '../hooks/orderManagementHooks';
 
@@ -47,29 +48,22 @@ const OrderManagement = () => {
     selected,
     setSelectedId,
     refreshOrders,
+    assignSeller,
+    assignDeliveryBoy,
+    loadSellers,
+    loadDeliveryBoys,
   } = useOrderManagement();
 
   if (isLoading) {
     return <OrderManagementSkeleton />;
   }
 
-  const getQuantity = (order) =>
-    Number(order.quantity ?? 0);
-
-  const getProductQuantity = (order) =>
-    order.productQuantity || "N/A";
-
-  const getProductTotal = (order) =>
-    Number(order.productTotal ?? 0);
-
-  const getPlatformFee = (order) =>
-    Number(order.platformFee ?? 0);
-
-  const getDeliveryFee = (order) =>
-    Number(order.deliveryFee ?? 0);
-
-  const getGrandTotal = (order) =>
-    Number(order.totalSumFee ?? 0);
+  const getQuantity = (order) => Number(order.quantity ?? 0);
+  const getProductQuantity = (order) => order.productQuantity || 'N/A';
+  const getProductTotal = (order) => Number(order.productTotal ?? 0);
+  const getPlatformFee = (order) => Number(order.platformFee ?? 0);
+  const getDeliveryFee = (order) => Number(order.deliveryFee ?? 0);
+  const getGrandTotal = (order) => Number(order.totalSumFee ?? 0);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -77,7 +71,7 @@ const OrderManagement = () => {
       {/* Page heading */}
       <PageHeader
         title="Placed Orders"
-        description="View newly placed farmer orders, product quantities and payment details."
+        description="View newly placed farmer orders, assign sellers and delivery boys, and check payment details."
       />
 
       {/* Summary card */}
@@ -131,7 +125,7 @@ const OrderManagement = () => {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search order, farmer, product..."
+                placeholder="Search order, farmer, product, seller..."
                 className="w-full bg-transparent py-3 outline-none placeholder:text-outline"
               />
             </div>
@@ -159,7 +153,7 @@ const OrderManagement = () => {
 
         {/* Orders table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[850px] text-left text-sm">
+          <table className="w-full min-w-[1100px] text-left text-sm">
 
             <thead className="bg-primary/5 text-xs uppercase tracking-wide text-outline">
               <tr>
@@ -170,6 +164,8 @@ const OrderManagement = () => {
                   'Quantity',
                   'Total Amount',
                   'Payment',
+                  'Seller',
+                  'Delivery Boy',
                   'Status',
                   'Action',
                 ].map((heading) => (
@@ -219,9 +215,19 @@ const OrderManagement = () => {
                   </td>
 
                   <td className="px-5 py-4">
-                    <StatusBadge
-                      status={order.paymentMode || 'N/A'}
-                    />
+                    <StatusBadge status={order.paymentMode || 'N/A'} />
+                  </td>
+
+                  <td className="px-5 py-4 text-primary">
+                    {order.seller?.name || (
+                      <span className="text-outline">Not assigned</span>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4 text-primary">
+                    {order.deliveryBoy?.name || (
+                      <span className="text-outline">Not assigned</span>
+                    )}
                   </td>
 
                   <td className="px-5 py-4">
@@ -245,7 +251,7 @@ const OrderManagement = () => {
               ))}
 
               {visibleOrders.length === 0 && (
-                <EmptyRow colSpan={8}>
+                <EmptyRow colSpan={10}>
                   {query
                     ? 'No matching placed orders found.'
                     : 'No placed orders available.'}
@@ -261,7 +267,7 @@ const OrderManagement = () => {
       {selected && (
         <Drawer
           title={`Order #${selected.id}`}
-          subtitle="Placed order and product details"
+          subtitle="Order details, seller and delivery assignment"
           onClose={() => setSelectedId(null)}
         >
 
@@ -280,6 +286,35 @@ const OrderManagement = () => {
             <StatusBadge status="PLACED" />
           </div>
 
+          {/* Fulfilment: seller + delivery boy */}
+          <div className="mt-6">
+            <h3 className="font-bold text-primary">
+              Fulfilment
+            </h3>
+
+            <div className="mt-3 space-y-3">
+              <AssignPicker
+                key={`seller-${selected.id}`}
+                label="Seller"
+                icon="storefront"
+                current={selected.seller}
+                load={() => loadSellers(selected.id)}
+                onAssign={(sellerId) => assignSeller(selected.id, sellerId)}
+              />
+
+              <AssignPicker
+                key={`boy-${selected.id}-${selected.seller?.id ?? 'none'}`}
+                label="Delivery boy"
+                icon="local_shipping"
+                current={selected.deliveryBoy}
+                load={() => loadDeliveryBoys(selected.id)}
+                onAssign={(boyId) => assignDeliveryBoy(selected.id, boyId)}
+                disabled={!selected.seller}
+                disabledHint="Assign a seller first, then choose a delivery boy."
+              />
+            </div>
+          </div>
+
           {/* Product information */}
           <div className="mt-6">
             <h3 className="font-bold text-primary">
@@ -296,7 +331,7 @@ const OrderManagement = () => {
 
                 <div className="min-w-0">
                   <p className="font-bold text-primary">
-                    Product ID: {selected.productId || "N/A"}
+                    Product ID: {selected.productId || 'N/A'}
                   </p>
 
                   <p className="mt-1 text-xs text-on-surface-variant">
@@ -305,7 +340,7 @@ const OrderManagement = () => {
                 </div>
               </div>
 
-              <div className="border-t border-primary/10 pt-3 space-y-3">
+              <div className="space-y-3 border-t border-primary/10 pt-3">
                 <div className="flex justify-between gap-3 text-sm">
                   <span className="text-on-surface-variant">
                     Number of packages
@@ -383,30 +418,21 @@ const OrderManagement = () => {
             <div className="mt-4 space-y-3 text-sm">
 
               <div className="flex justify-between gap-3">
-                <span className="text-on-surface-variant">
-                  Product total
-                </span>
-
+                <span className="text-on-surface-variant">Product total</span>
                 <span className="font-medium text-primary">
                   {money(getProductTotal(selected))}
                 </span>
               </div>
 
               <div className="flex justify-between gap-3">
-                <span className="text-on-surface-variant">
-                  Platform fee
-                </span>
-
+                <span className="text-on-surface-variant">Platform fee</span>
                 <span className="font-medium text-primary">
                   {money(getPlatformFee(selected))}
                 </span>
               </div>
 
               <div className="flex justify-between gap-3">
-                <span className="text-on-surface-variant">
-                  Delivery fee
-                </span>
-
+                <span className="text-on-surface-variant">Delivery fee</span>
                 <span className="font-medium text-primary">
                   {money(getDeliveryFee(selected))}
                 </span>
@@ -414,10 +440,7 @@ const OrderManagement = () => {
 
               <div className="border-t border-primary/10 pt-3">
                 <div className="flex justify-between gap-3">
-                  <span className="font-bold text-primary">
-                    Grand Total
-                  </span>
-
+                  <span className="font-bold text-primary">Grand Total</span>
                   <span className="text-lg font-extrabold text-emerald-600">
                     {money(getGrandTotal(selected))}
                   </span>

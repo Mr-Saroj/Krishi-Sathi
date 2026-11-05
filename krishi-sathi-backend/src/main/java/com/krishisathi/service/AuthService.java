@@ -8,7 +8,7 @@ import com.krishisathi.dto.WebLoginRequest;
 import com.krishisathi.dto.WebSellerRegisterRequest;
 import com.krishisathi.exception.ApiException;
 import com.krishisathi.model.Role;
-
+import com.krishisathi.model.DeliveryBoy;
 import com.krishisathi.model.LoginAccess;
 import com.krishisathi.model.User;
 import com.krishisathi.repository.UserRepository;
@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.krishisathi.model.SellerProfile;
+import com.krishisathi.repository.DeliveryBoyRepository;
 import com.krishisathi.repository.SellerProfileRepository;
 
 @Service
@@ -31,17 +32,20 @@ public class AuthService {
         private final JwtService jwtService;
         private final CloudinaryService cloudinaryService;
         public final SellerProfileRepository sellerProfileRepository;
+        private final DeliveryBoyRepository deliveryBoyRepository;
 
         public AuthService(
                         UserRepository farmerRepository,
-                        
+
                         PasswordEncoder passwordEncoder,
                         JwtService jwtService,
                         CloudinaryService cloudinaryService,
-                        SellerProfileRepository sellerProfileRepository) {
+                        SellerProfileRepository sellerProfileRepository,
+                        DeliveryBoyRepository deliveryBoyRepository) {
 
                 this.userRepository = farmerRepository;
-                
+                this.deliveryBoyRepository = deliveryBoyRepository;
+
                 this.passwordEncoder = passwordEncoder;
                 this.jwtService = jwtService;
                 this.cloudinaryService = cloudinaryService;
@@ -87,35 +91,86 @@ public class AuthService {
                 return "Registration successful";
         }
 
-        // farmer login
         public LoginResponse login(LoginRequest request) {
+
+                Role role = request.getRole() == null ? Role.FARMER : request.getRole();
+
+                return switch (role) {
+                        case FARMER -> farmerLogin(request); // users collection, by mobile
+                        case DELIVERY_BOY -> deliveryBoyLogin(request); // delivery_boy_list, by email
+                        default -> throw new ApiException(
+                                        "Invalid login role",
+                                        HttpStatus.BAD_REQUEST);
+                };
+        }
+
+        // ---------- FARMER: mobile + password ----------
+        private LoginResponse farmerLogin(LoginRequest request) {
+
+                if (request.getMobileNumber() == null
+                                || request.getMobileNumber().isBlank()) {
+                        throw new ApiException(
+                                        "Mobile number is required",
+                                        HttpStatus.BAD_REQUEST);
+                }
 
                 String mobileNumber = request.getMobileNumber().trim();
 
                 User user = userRepository
                                 .findByMobileNumber(mobileNumber)
+                                .orElseThrow(() -> invalidCredentials());
+
+                if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                        throw invalidCredentials();
+                }
+
+                if (user.getRole() != Role.FARMER) {
+                        throw invalidCredentials();
+                }
+
+                String token = jwtService.generateToken(user.getEmail(), user.getRole());
+
+                return new LoginResponse(token, user.getFullName(), user.getRole());
+        }
+
+        private ApiException invalidCredentials() {
+                return new ApiException(
+                                "Invalid email or password",
+                                HttpStatus.UNAUTHORIZED);
+        }
+
+        // ---------- DELIVERY BOY: email + password ----------
+        private LoginResponse deliveryBoyLogin(LoginRequest request) {
+
+                if (request.getEmail() == null || request.getEmail().isBlank()) {
+                        throw new ApiException(
+                                        "Email is required",
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
+                // delivery_boy_list stores the farmer's email in farmerEmail
+                DeliveryBoy deliveryBoy = deliveryBoyRepository
+                                .findByFarmerEmail(email)
                                 .orElseThrow(() -> new ApiException(
-                                                "Invalid mobile number or password",
+                                                "Invalid email or password",
                                                 HttpStatus.UNAUTHORIZED));
 
-                boolean passwordMatches = passwordEncoder.matches(
-                                request.getPassword(),
-                                user.getPassword());
-
-                if (!passwordMatches) {
+                if (!passwordEncoder.matches(request.getPassword(), deliveryBoy.getPassword())) {
                         throw new ApiException(
-                                        "Invalid mobile number or password",
+                                        "Invalid email or password",
                                         HttpStatus.UNAUTHORIZED);
                 }
 
                 String token = jwtService.generateToken(
-                                user.getEmail(),
-                                user.getRole());
+                                deliveryBoy.getFarmerEmail(),
+                                Role.DELIVERY_BOY);
 
                 return new LoginResponse(
                                 token,
-                                user.getFullName(),
-                                user.getRole());
+                                deliveryBoy.getFullName(),
+                                Role.DELIVERY_BOY);
         }
 
         // New admin web login
