@@ -1,190 +1,461 @@
-import React, { useRef, useState } from 'react';
-
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
-  FlatList,
+  Easing,
   Image,
   StatusBar,
+  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
-  ViewToken,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 const LOGO = require('../../assets/app_logo.png');
 
-// Where to go when onboarding ends. Change to a route that exists in your app.
-const NEXT_ROUTE = '/register';
+// Where to go when the splash ends. Change to a route that exists in your app.
+const NEXT_ROUTE = '/login';
 
-type Slide = {
-  key: string;
-  title: string;
-  body: string;
-  icon?: keyof typeof MaterialCommunityIcons.glyphMap;
+// Total time the splash stays on screen (ms)
+const SPLASH_DURATION = 3200;
+
+// Colors taken from the logo
+const COLORS = {
+  forest: '#14532D',
+  leaf: '#22863A',
+  wheat: '#E8B93C',
+  wheatSoft: '#FFF6DA',
+  paper: '#F8FBF8',
+  muted: '#5B6B60',
 };
 
-const SLIDES: Slide[] = [
-  {
-    key: 'welcome',
-    title: 'Your farming companion',
-    body: 'Get crop advice, weather alerts and market prices in simple words.',
-  },
-  {
-    key: 'ask',
-    icon: 'camera-iris',
-    title: 'Ask about any crop problem',
-    body: 'Take a photo of a sick leaf or type your question. Get a clear answer on what to do next.',
-  },
-  {
-    key: 'plan',
-    icon: 'weather-partly-rainy',
-    title: 'Plan with weather and prices',
-    body: 'Know when to sow, spray and sell, with updates for your district.',
-  },
-];
+/* ---------- Expanding ripple ring behind the logo ---------- */
+function Ripple({ size, delay }: { size: number; delay: number }) {
+  const progress = useRef(new Animated.Value(0)).current;
 
-export default function Welcome() {
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const [index, setIndex] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const listRef = useRef<FlatList<Slide>>(null);
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(progress, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [delay, progress]);
 
-  const isLast = index === SLIDES.length - 1;
-  const logoWidth = Math.min(width - 32, 420);
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
+  const opacity = progress.interpolate({
+    inputRange: [0, 0.2, 1],
+    outputRange: [0, 0.3, 0],
+  });
 
-  const onFinish = () => router.replace(NEXT_ROUTE as any);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.ripple,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          opacity,
+          transform: [{ scale }],
+        },
+      ]}
+    />
+  );
+}
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems[0]?.index != null) setIndex(viewableItems[0].index);
-    },
-  ).current;
+/* ---------- Rotating ring of "circuit" dots ---------- */
+function OrbitRing({ size }: { size: number }) {
+  const spin = useRef(new Animated.Value(0)).current;
 
-  const handleNext = () => {
-    if (isLast) onFinish();
-    else listRef.current?.scrollToIndex({ index: index + 1, animated: true });
-  };
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 9000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [spin]);
 
-  const renderSlide = ({ item }: { item: Slide }) => (
-    <View style={{ width }} className="flex-1 items-center px-7">
-      <View className="max-h-[340px] flex-1 items-center justify-center">
-        {item.icon ? (
-          <View className="h-[220px] w-[220px] items-center justify-center rounded-full border-[3px] border-wheat">
-            <View className="h-[170px] w-[170px] items-center justify-center rounded-full bg-wheat-soft">
-              <MaterialCommunityIcons name={item.icon} size={72} color="#14532D" />
-            </View>
-          </View>
-        ) : (
-          // The source logo has wide margins, so crop to the artwork
-          <View
-            className="justify-center overflow-hidden"
-            style={{ width: logoWidth, height: logoWidth * 0.5 }}
-          >
-            <Image
-              source={LOGO}
-              style={{ width: logoWidth, height: logoWidth }}
-              resizeMode="contain"
-              accessibilityLabel="Krishi Sathi AI logo"
-            />
-          </View>
-        )}
-      </View>
+  const rotate = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
-      <Text className="mt-2 text-center text-[30px] font-extrabold leading-9 text-forest">
-        {item.title}
-      </Text>
-      <Text className="mt-3 max-w-[320px] text-center text-[17px] leading-[25px] text-muted">
-        {item.body}
-      </Text>
-    </View>
+  const DOTS = 20;
+  const radius = size / 2;
+  const dots = useMemo(
+    () =>
+      Array.from({ length: DOTS }).map((_, i) => {
+        const angle = (i / DOTS) * Math.PI * 2;
+        const big = i % 5 === 0;
+        const d = big ? 10 : 5;
+        return {
+          key: i,
+          d,
+          left: radius + radius * Math.cos(angle) - d / 2,
+          top: radius + radius * Math.sin(angle) - d / 2,
+          color: big ? COLORS.wheat : COLORS.leaf,
+          opacity: big ? 1 : 0.5,
+        };
+      }),
+    [radius],
   );
 
   return (
-    <View className="flex-1 bg-paper">
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FBF8" />
-      <SafeAreaView style={{ flex: 1 }}>
-        <View className="h-14 flex-row items-center justify-between px-6">
-          {index > 0 ? (
-            <Image
-              source={LOGO}
-              className="h-10 w-10 rounded-full"
-              resizeMode="cover"
-              accessibilityLabel="Krishi Sathi AI"
-            />
-          ) : (
-            <View />
-          )}
-          {!isLast && (
-            <TouchableOpacity onPress={onFinish} hitSlop={12} accessibilityRole="button">
-              <Text className="text-base font-semibold text-muted">Skip</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* No className here: Animated components don't take className */}
-        <Animated.FlatList
-          ref={listRef as any}
-          data={SLIDES}
-          keyExtractor={(s) => s.key}
-          renderItem={renderSlide}
-          horizontal
-          pagingEnabled
-          bounces={false}
-          showsHorizontalScrollIndicator={false}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-            useNativeDriver: false,
-          })}
-          scrollEventThrottle={16}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={{ viewAreaCoveragePercentThreshold: 60 }}
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        width: size,
+        height: size,
+        transform: [{ rotate }],
+      }}
+    >
+      {dots.map((d) => (
+        <View
+          key={d.key}
+          style={{
+            position: 'absolute',
+            left: d.left,
+            top: d.top,
+            width: d.d,
+            height: d.d,
+            borderRadius: d.d / 2,
+            backgroundColor: d.color,
+            opacity: d.opacity,
+          }}
         />
-
-        <View className="items-center px-6 pb-4">
-          <View className="mb-5 h-5 flex-row items-center">
-            {SLIDES.map((_, i) => {
-              const range = [(i - 1) * width, i * width, (i + 1) * width];
-              const dotWidth = scrollX.interpolate({
-                inputRange: range,
-                outputRange: [8, 28, 8],
-                extrapolate: 'clamp',
-              });
-              const opacity = scrollX.interpolate({
-                inputRange: range,
-                outputRange: [0.35, 1, 0.35],
-                extrapolate: 'clamp',
-              });
-              return (
-                <Animated.View
-                  key={i}
-                  style={{ width: dotWidth, opacity }}
-                  className="mx-1 h-2 rounded bg-leaf"
-                />
-              );
-            })}
-          </View>
-
-          <TouchableOpacity
-            className="h-14 w-full items-center justify-center rounded-2xl bg-forest"
-            onPress={handleNext}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={isLast ? 'Get started' : 'Next'}
-          >
-            <Text className="text-lg font-bold text-white">
-              {isLast ? 'Get started' : 'Next'}
-            </Text>
-          </TouchableOpacity>
-
-          <Text className="mt-3.5 text-[13px] text-muted">
-            Free to use. Works in English, हिन्दी and ଓଡ଼ିଆ.
-          </Text>
-        </View>
-      </SafeAreaView>
-    </View>
+      ))}
+    </Animated.View>
   );
 }
+
+/* ---------- Splash screen ---------- */
+export default function Splash() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  // Full logo size (shown uncropped)
+  const logoSize = Math.min(width * 0.62, 280);
+  // Ring is bigger than the logo's diagonal so it never touches the logo corners
+  const ringSize = logoSize * 1.45;
+  const stageSize = ringSize + 24;
+
+  // Animated values
+  const screenOpacity = useRef(new Animated.Value(1)).current;
+  const logoScale = useRef(new Animated.Value(0.4)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoTilt = useRef(new Animated.Value(0)).current;
+  const float = useRef(new Animated.Value(0)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleY = useRef(new Animated.Value(24)).current;
+  const tagOpacity = useRef(new Animated.Value(0)).current;
+  const tagY = useRef(new Animated.Value(16)).current;
+  const barOpacity = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // 1) Logo pops in with a spring and a small tilt that settles
+    const logoIn = Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(logoTilt, {
+          toValue: 1,
+          duration: 450,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(logoTilt, {
+          toValue: 0,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    // 2) Title and tagline slide up
+    const textIn = Animated.stagger(180, [
+      Animated.parallel([
+        Animated.timing(titleOpacity, {
+          toValue: 1,
+          duration: 550,
+          useNativeDriver: true,
+        }),
+        Animated.timing(titleY, {
+          toValue: 0,
+          duration: 550,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(tagOpacity, {
+          toValue: 1,
+          duration: 550,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tagY, {
+          toValue: 0,
+          duration: 550,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    // 3) Progress bar fills up
+    const barIn = Animated.parallel([
+      Animated.timing(barOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: SPLASH_DURATION - 1400,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]);
+
+    // Gentle floating loop for the logo
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(float, {
+          toValue: 0,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    const intro = Animated.sequence([logoIn, Animated.parallel([textIn, barIn])]);
+
+    intro.start();
+    floatLoop.start();
+
+    // Fade out and move on
+    const timer = setTimeout(() => {
+      Animated.timing(screenOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => router.replace(NEXT_ROUTE as any));
+    }, SPLASH_DURATION);
+
+    return () => {
+      clearTimeout(timer);
+      intro.stop();
+      floatLoop.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const floatY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
+  const tilt = logoTilt.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-6deg'],
+  });
+  const barWidth = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  return (
+    <Animated.View style={[styles.root, { opacity: screenOpacity }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.paper} />
+
+      {/* Soft decorative blobs */}
+      <View style={[styles.blob, styles.blobTop]} />
+      <View style={[styles.blob, styles.blobBottom]} />
+
+      <SafeAreaView style={styles.safe}>
+        {/* Center stage */}
+        <View style={styles.center}>
+          <View
+            style={{
+              width: stageSize,
+              height: stageSize,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ripple size={logoSize * 0.9} delay={0} />
+            <Ripple size={logoSize * 0.9} delay={800} />
+            <Ripple size={logoSize * 0.9} delay={1600} />
+
+            <Animated.View style={{ opacity: logoOpacity }}>
+              <OrbitRing size={ringSize} />
+            </Animated.View>
+
+            {/* Full logo, no cropping, no circle mask */}
+            <Animated.View
+              style={{
+                width: logoSize,
+                height: logoSize,
+                opacity: logoOpacity,
+                transform: [
+                  { translateY: floatY },
+                  { scale: logoScale },
+                  { rotate: tilt },
+                ],
+              }}
+            >
+              <Image
+                source={LOGO}
+                style={{ width: logoSize, height: logoSize }}
+                resizeMode="contain"
+                accessibilityLabel="Krishi Sathi AI logo"
+              />
+            </Animated.View>
+          </View>
+
+          {/* App name */}
+          <Animated.View
+            style={{
+              opacity: titleOpacity,
+              transform: [{ translateY: titleY }],
+              alignItems: 'center',
+              marginTop: 4,
+            }}
+          >
+            <Text style={styles.title}>
+              Krishi Sathi <Text style={styles.titleAccent}>AI</Text>
+            </Text>
+          </Animated.View>
+
+          <Animated.Text
+            style={[
+              styles.tagline,
+              { opacity: tagOpacity, transform: [{ translateY: tagY }] },
+            ]}
+          >
+            Smart farming, in simple words
+          </Animated.Text>
+        </View>
+
+        {/* Footer: loader */}
+        <Animated.View style={[styles.footer, { opacity: barOpacity }]}>
+          <View style={styles.track}>
+            <Animated.View style={[styles.fill, { width: barWidth }]} />
+          </View>
+          <Text style={styles.loading}>Preparing your farm assistant...</Text>
+        </Animated.View>
+      </SafeAreaView>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.paper,
+  },
+  safe: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  ripple: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: COLORS.wheat,
+    backgroundColor: COLORS.wheatSoft,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: COLORS.forest,
+    letterSpacing: 0.4,
+  },
+  titleAccent: {
+    color: COLORS.wheat,
+  },
+  tagline: {
+    marginTop: 8,
+    fontSize: 16,
+    color: COLORS.muted,
+    textAlign: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 48,
+    paddingBottom: 36,
+  },
+  track: {
+    width: '100%',
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#DDE9DF',
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: COLORS.leaf,
+  },
+  loading: {
+    marginTop: 12,
+    fontSize: 13,
+    color: COLORS.muted,
+  },
+  blob: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  blobTop: {
+    width: 320,
+    height: 320,
+    top: -140,
+    right: -120,
+    backgroundColor: 'rgba(34,134,58,0.10)',
+  },
+  blobBottom: {
+    width: 360,
+    height: 360,
+    bottom: -170,
+    left: -140,
+    backgroundColor: 'rgba(232,185,60,0.16)',
+  },
+});

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 
 import {
@@ -11,6 +10,7 @@ import {
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import {
   getFarmerDetails,
@@ -22,6 +22,8 @@ import OrderList from "../../src/farmer/components/OrderList";
 import OrderDetails from "../../src/farmer/components/OrderDetails";
 
 import { useOrderHistory } from "../../src/farmer/hooks/useOrderHistory";
+
+import { clearAuthData } from "../../src/services/storageService";
 
 type IconName =
   React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -85,6 +87,8 @@ function Row({
 }
 
 export default function Profile() {
+  const router = useRouter();
+
   const [farmer, setFarmer] = useState<FarmerDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -152,6 +156,44 @@ export default function Profile() {
       isMounted = false;
     };
   }, []);
+
+  // LOGOUT FUNCTION
+  const handleLogout = async () => {
+    try {
+      // 1. Delete JWT, role and full name from Expo SecureStore
+      await clearAuthData();
+
+      // 2. Redirect to login screen
+      router.replace("/(auth)/login");
+
+    } catch (error) {
+      console.error("Logout error:", error);
+
+      Alert.alert(
+        "Logout Failed",
+        "Unable to log out. Please try again."
+      );
+    }
+  };
+
+  // LOGOUT CONFIRMATION
+  const confirmLogout = () => {
+    Alert.alert(
+      "Log out?",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: handleLogout,
+        },
+      ]
+    );
+  };
 
   // OPEN ADDRESS SCREEN
   const handleEditAddress = () => {
@@ -313,11 +355,18 @@ export default function Profile() {
         />
 
         {/* LOGOUT */}
-        <Row
-          icon="logout"
-          label="Logout"
-          danger
-        />
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={confirmLogout}
+        >
+          <Row
+            icon="logout"
+            label="Logout"
+            value="Sign out from your account"
+            danger
+          />
+        </TouchableOpacity>
+
       </View>
 
       {/* LOADING INDICATOR */}
