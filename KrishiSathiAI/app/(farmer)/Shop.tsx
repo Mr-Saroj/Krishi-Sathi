@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import {
   Image,
   ImageSourcePropType,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   Text,
   TextInput,
@@ -17,7 +19,6 @@ import CategoryProducts from '../../src/farmer/components/CategoryProducts';
 import Checkout from '../../src/farmer/components/Checkout';
 import OrderSuccess from '../../src/farmer/components/OrderSuccess';
 
-
 import type { PlaceOrderResponse } from '../../src/farmer/services/farmerOrderService';
 import DeliveryBoyForm from '../../src/farmer/components/DeliveryBoyForm';
 
@@ -25,11 +26,17 @@ type IconName = React.ComponentProps<
   typeof MaterialCommunityIcons
 >['name'];
 
+// ==================== THEME ====================
+
 const FOREST = '#14532D';
 const LEAF = '#2E7D32';
 const AMBER = '#F5A623';
 const MUTED = '#5E7365';
 const INK = '#1F2A24';
+const PAGE_BG = '#F3F6EF';
+const MINT = '#DDF0DD';
+
+const SIDE = 16;
 
 type Category = {
   id: string;
@@ -37,16 +44,6 @@ type Category = {
   apiCategory: string;
   icon: IconName;
   image?: ImageSourcePropType;
-};
-
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  unit: string;
-  icon: IconName;
-  image?: string;
 };
 
 const CATEGORIES: Category[] = [
@@ -101,6 +98,8 @@ const CATEGORIES: Category[] = [
   },
 ];
 
+// ==================== ADVERTISEMENT DATA ====================
+
 const BANNER_SEEDS = require('../../assets/Images/Trending1.png');
 
 const BANNER_RATIO = 3584 / 1184;
@@ -109,65 +108,101 @@ type BannerItem = {
   id: string;
   source: ImageSourcePropType;
   label: string;
+  categoryId?: string; // tapping the ad opens this category
 };
 
 const TRENDING_BANNERS: BannerItem[] = [
-  { id: 't1', source: BANNER_SEEDS, label: 'Capsicum seeds' },
-  { id: 't2', source: BANNER_SEEDS, label: 'Vegetable seeds' },
-  { id: 't3', source: BANNER_SEEDS, label: 'Hybrid seeds' },
+  { id: 't1', source: BANNER_SEEDS, label: 'Capsicum seeds', categoryId: 'seeds' },
+  { id: 't2', source: BANNER_SEEDS, label: 'Vegetable seeds', categoryId: 'seeds' },
+  { id: 't3', source: BANNER_SEEDS, label: 'Hybrid seeds', categoryId: 'seeds' },
 ];
 
 const PROMO_VIDEO = require('../../assets/Vedios/Promotion2.mp4');
 
-const PROMO_HEIGHT = 170;
+const PROMO_HEIGHT = 190;
 
-const PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Swarna Paddy Seeds', category: 'Seeds', price: 450, unit: '5 kg', icon: 'grain' },
-  { id: 'p2', name: 'Hybrid Cotton Seeds', category: 'Seeds', price: 820, unit: '450 g', icon: 'flower-outline' },
-  { id: 'p3', name: 'Urea Fertilizer', category: 'Fertilizers', price: 266, unit: '45 kg', icon: 'bag-personal-outline' },
-  { id: 'p4', name: 'DAP Fertilizer', category: 'Fertilizers', price: 1350, unit: '50 kg', icon: 'bag-personal-outline' },
-  { id: 'p5', name: 'Hand Sprayer 16L', category: 'Farming Tools', price: 1199, unit: '1 pc', icon: 'spray' },
-  { id: 'p6', name: 'Garden Sickle', category: 'Farming Tools', price: 180, unit: '1 pc', icon: 'content-cut' },
-  { id: 'p7', name: 'Drip Irrigation Kit', category: 'Irrigation', price: 2499, unit: '1 acre', icon: 'water-pump' },
-  { id: 'p8', name: 'Mini Power Tiller', category: 'Machinery', price: 32500, unit: '1 pc', icon: 'tractor' },
-  { id: 'p9', name: 'Neem Oil Pesticide', category: 'Pesticides', price: 340, unit: '1 L', icon: 'bottle-tonic-outline' },
-  { id: 'p10', name: 'Cattle Feed Mix', category: 'Animal Feed', price: 720, unit: '25 kg', icon: 'cow' },
+// Placeholder offer text: replace with your real campaigns.
+type OfferTile = {
+  id: string;
+  title: string;
+  sub: string;
+  icon: IconName;
+  bg: string;
+  fg: string;
+  categoryId: string;
+};
+
+const OFFER_TILES: OfferTile[] = [
+  {
+    id: 'o1',
+    title: 'Seed season offers',
+    sub: 'Sow now, save more',
+    icon: 'seed-outline',
+    bg: FOREST,
+    fg: '#FFFFFF',
+    categoryId: 'seeds',
+  },
+  {
+    id: 'o2',
+    title: 'Fertilizer deals',
+    sub: 'Better yield, better price',
+    icon: 'bag-personal-outline',
+    bg: AMBER,
+    fg: INK,
+    categoryId: 'fertilizer',
+  },
+  {
+    id: 'o3',
+    title: 'Irrigation savings',
+    sub: 'Drip kits for every acre',
+    icon: 'water-pump',
+    bg: '#1E6F8C',
+    fg: '#FFFFFF',
+    categoryId: 'irrigation',
+  },
+  {
+    id: 'o4',
+    title: 'Machinery offers',
+    sub: 'Tillers, sprayers and more',
+    icon: 'tractor',
+    bg: '#6D4C2F',
+    fg: '#FFFFFF',
+    categoryId: 'machinery',
+  },
 ];
 
-const formatPrice = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+const TRUST_ITEMS: { icon: IconName; title: string; sub: string }[] = [
+  { icon: 'shield-check-outline', title: 'Genuine', sub: 'Quality checked' },
+  { icon: 'tag-outline', title: 'Fair prices', sub: 'Direct from sellers' },
+  { icon: 'truck-fast-outline', title: 'Delivery', sub: 'To your village' },
+];
 
 const cardShadow = {
-  shadowColor: '#000',
-  shadowOpacity: 0.05,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 2 },
-  elevation: 2,
+  shadowColor: '#0B2A14',
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 3,
 } as const;
 
 // ==================== SECTION TITLE ====================
 
 function SectionTitle({
   title,
-  action,
+  subtitle,
 }: {
   title: string;
-  action?: string;
+  subtitle?: string;
 }) {
   return (
-    <View className="mb-3 mt-6 flex-row items-center justify-between">
-      <Text className="text-[18px] font-extrabold" style={{ color: INK }}>
+    <View className="mb-3 mt-7" style={{ paddingHorizontal: SIDE }}>
+      <Text className="text-[19px] font-extrabold" style={{ color: INK }}>
         {title}
       </Text>
-
-      {action ? (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`${action} ${title}`}
-        >
-          <Text className="text-[13px] font-bold" style={{ color: FOREST }}>
-            {action}
-          </Text>
-        </TouchableOpacity>
+      {subtitle ? (
+        <Text className="mt-0.5 text-[12px]" style={{ color: MUTED }}>
+          {subtitle}
+        </Text>
       ) : null}
     </View>
   );
@@ -177,11 +212,9 @@ function SectionTitle({
 
 function CategoryItem({
   c,
-  active,
   onPress,
 }: {
   c: Category;
-  active: boolean;
   onPress: () => void;
 }) {
   const [failed, setFailed] = useState(false);
@@ -191,17 +224,16 @@ function CategoryItem({
       activeOpacity={0.85}
       onPress={onPress}
       className="mr-3 items-center"
-      style={{ width: 92 }}
+      style={{ width: 84 }}
       accessibilityRole="button"
       accessibilityLabel={c.name}
-      accessibilityState={{ selected: active }}
     >
       <View
-        className="h-20 w-20 items-center justify-center overflow-hidden rounded-full"
+        className="h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-[26px]"
         style={{
-          backgroundColor: active ? LEAF : '#DDF0DD',
-          borderWidth: active ? 3 : 0,
-          borderColor: LEAF,
+          backgroundColor: MINT,
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
           ...cardShadow,
         }}
       >
@@ -213,18 +245,14 @@ function CategoryItem({
             onError={() => setFailed(true)}
           />
         ) : (
-          <MaterialCommunityIcons
-            name={c.icon}
-            size={34}
-            color={active ? '#FFFFFF' : LEAF}
-          />
+          <MaterialCommunityIcons name={c.icon} size={32} color={LEAF} />
         )}
       </View>
 
       <Text
         numberOfLines={2}
-        className="mt-2 text-center text-[12px] font-bold"
-        style={{ color: active ? FOREST : INK }}
+        className="mt-2 text-center text-[11.5px] font-bold leading-[14px]"
+        style={{ color: INK }}
       >
         {c.name}
       </Text>
@@ -232,53 +260,35 @@ function CategoryItem({
   );
 }
 
-// ==================== BANNER SLIDER ====================
+// ==================== TRUST STRIP ====================
 
-function BannerSlider({
-  items,
-  width,
-  heightScale = 1,
-  resizeMode = 'contain',
-}: {
-  items: BannerItem[];
-  width: number;
-  heightScale?: number;
-  resizeMode?: 'contain' | 'cover';
-}) {
+function TrustStrip() {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={width + 12}
-      snapToAlignment="start"
-      decelerationRate="fast"
+    <View
+      className="flex-row rounded-2xl bg-white py-3"
+      style={{ marginHorizontal: SIDE, ...cardShadow }}
     >
-      {items.map((b) => {
-        const meta = Image.resolveAssetSource(b.source);
-
-        const ratio =
-          meta?.width && meta?.height ? meta.width / meta.height : BANNER_RATIO;
-
-        const height = Math.round((width / ratio) * heightScale);
-
-        return (
-          <TouchableOpacity
-            key={b.id}
-            activeOpacity={0.9}
-            className="mr-3 overflow-hidden rounded-3xl"
-            style={{ width, height }}
-            accessibilityRole="button"
-            accessibilityLabel={b.label}
-          >
-            <Image
-              source={b.source}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode={resizeMode}
-            />
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+      {TRUST_ITEMS.map((t, i) => (
+        <View
+          key={t.title}
+          className="flex-1 flex-row items-center justify-center px-2"
+          style={{
+            borderLeftWidth: i === 0 ? 0 : 1,
+            borderLeftColor: '#E3EBDF',
+          }}
+        >
+          <MaterialCommunityIcons name={t.icon} size={22} color={LEAF} />
+          <View className="ml-1.5">
+            <Text className="text-[12px] font-extrabold" style={{ color: INK }}>
+              {t.title}
+            </Text>
+            <Text className="text-[10px]" style={{ color: MUTED }}>
+              {t.sub}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -294,7 +304,12 @@ function PromoVideo({ width }: { width: number }) {
   return (
     <View
       className="overflow-hidden rounded-3xl bg-[#EEF5EA]"
-      style={{ width, height: PROMO_HEIGHT }}
+      style={{
+        width,
+        height: PROMO_HEIGHT,
+        marginHorizontal: SIDE,
+        ...cardShadow,
+      }}
     >
       <VideoView
         player={player}
@@ -303,69 +318,161 @@ function PromoVideo({ width }: { width: number }) {
         nativeControls={false}
         allowsPictureInPicture={false}
       />
+
+      <View
+        className="absolute left-3 top-3 flex-row items-center rounded-full px-2.5 py-1"
+        style={{ backgroundColor: AMBER }}
+      >
+        <MaterialCommunityIcons name="sale" size={14} color={INK} />
+        <Text className="ml-1 text-[11px] font-extrabold" style={{ color: INK }}>
+          Offers
+        </Text>
+      </View>
     </View>
   );
 }
 
-// ==================== PRODUCT CARD ====================
+// ==================== OFFER TILES ====================
 
-function ProductCard({
-  p,
-  width,
-  onBuyNow,
+function OfferTiles({
+  tiles,
+  onPress,
 }: {
-  p: Product;
-  width: number;
-  onBuyNow: (product: Product) => void;
+  tiles: OfferTile[];
+  onPress: (categoryId: string) => void;
 }) {
-  const [failed, setFailed] = useState(false);
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: SIDE, paddingBottom: 4 }}
+    >
+      {tiles.map((t) => (
+        <TouchableOpacity
+          key={t.id}
+          activeOpacity={0.9}
+          onPress={() => onPress(t.categoryId)}
+          className="mr-3 overflow-hidden rounded-3xl p-4"
+          style={{
+            width: 210,
+            height: 124,
+            backgroundColor: t.bg,
+            ...cardShadow,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.title}. ${t.sub}`}
+        >
+          <MaterialCommunityIcons
+            name={t.icon}
+            size={92}
+            color={t.fg}
+            style={{ position: 'absolute', right: -12, bottom: -14, opacity: 0.16 }}
+          />
+
+          <Text
+            numberOfLines={2}
+            className="text-[17px] font-extrabold leading-[21px]"
+            style={{ color: t.fg }}
+          >
+            {t.title}
+          </Text>
+          <Text
+            className="mt-1 text-[12px]"
+            style={{ color: t.fg, opacity: 0.85 }}
+          >
+            {t.sub}
+          </Text>
+
+          <View
+            className="mt-auto flex-row items-center self-start rounded-full px-3 py-1"
+            style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
+          >
+            <Text className="text-[12px] font-bold" style={{ color: t.fg }}>
+              View offers
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={14} color={t.fg} />
+          </View>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
+// ==================== BANNER SLIDER ====================
+
+function BannerSlider({
+  items,
+  width,
+  onPressItem,
+  heightScale = 1,
+  resizeMode = 'contain',
+}: {
+  items: BannerItem[];
+  width: number;
+  onPressItem?: (b: BannerItem) => void;
+  heightScale?: number;
+  resizeMode?: 'contain' | 'cover';
+}) {
+  const [index, setIndex] = useState(0);
+
+  const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setIndex(Math.round(e.nativeEvent.contentOffset.x / (width + 12)));
+  };
 
   return (
-    <View
-      className="mb-4 rounded-3xl bg-white p-3"
-      style={{ width, ...cardShadow }}
-    >
-      <View className="h-28 items-center justify-center overflow-hidden rounded-2xl bg-[#EEF5EA]">
-        {p.image && !failed ? (
-          <Image
-            source={{ uri: p.image }}
-            className="h-full w-full"
-            resizeMode="cover"
-            onError={() => setFailed(true)}
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={width + 12}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        onMomentumScrollEnd={onEnd}
+        contentContainerStyle={{ paddingHorizontal: SIDE }}
+      >
+        {items.map((b) => {
+          const meta = Image.resolveAssetSource(b.source);
+
+          const ratio =
+            meta?.width && meta?.height
+              ? meta.width / meta.height
+              : BANNER_RATIO;
+
+          const height = Math.round((width / ratio) * heightScale);
+
+          return (
+            <TouchableOpacity
+              key={b.id}
+              activeOpacity={0.9}
+              onPress={() => onPressItem?.(b)}
+              className="mr-3 overflow-hidden rounded-3xl"
+              style={{ width, height, ...cardShadow }}
+              accessibilityRole="button"
+              accessibilityLabel={b.label}
+            >
+              <Image
+                source={b.source}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode={resizeMode}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View className="mt-3 flex-row items-center justify-center">
+        {items.map((b, i) => (
+          <View
+            key={b.id}
+            className="mx-1 rounded-full"
+            style={{
+              height: 6,
+              width: i === index ? 20 : 6,
+              backgroundColor: i === index ? LEAF : '#C5D6C3',
+            }}
           />
-        ) : (
-          <MaterialCommunityIcons name={p.icon} size={44} color={LEAF} />
-        )}
+        ))}
       </View>
-
-      <Text
-        numberOfLines={2}
-        className="mt-2 text-[14px] font-extrabold"
-        style={{ color: INK }}
-      >
-        {p.name}
-      </Text>
-
-      <Text className="text-[12px]" style={{ color: MUTED }}>
-        {p.category} • {p.unit}
-      </Text>
-
-      <Text className="mt-1 text-[16px] font-extrabold" style={{ color: FOREST }}>
-        {formatPrice(p.price)}
-      </Text>
-
-      <TouchableOpacity
-        activeOpacity={0.85}
-        className="mt-2 items-center rounded-full py-2.5"
-        style={{ backgroundColor: AMBER }}
-        accessibilityRole="button"
-        accessibilityLabel={`Buy ${p.name} now`}
-        onPress={() => onBuyNow(p)}
-      >
-        <Text className="text-[13px] font-extrabold" style={{ color: INK }}>
-          Buy Now
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -377,11 +484,20 @@ function JoinDeliveryCard({ onPress }: { onPress: () => void }) {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      className="mt-6 flex-row items-center rounded-3xl p-4"
-      style={{ backgroundColor: FOREST, ...cardShadow }}
+      className="mt-7 flex-row items-center overflow-hidden rounded-3xl p-4"
+      style={{ backgroundColor: FOREST, marginHorizontal: SIDE, ...cardShadow }}
       accessibilityRole="button"
       accessibilityLabel="Join as a delivery boy"
     >
+      <View
+        className="absolute -right-8 -top-8 h-28 w-28 rounded-full"
+        style={{ backgroundColor: LEAF, opacity: 0.35 }}
+      />
+      <View
+        className="absolute -bottom-10 right-16 h-20 w-20 rounded-full"
+        style={{ backgroundColor: AMBER, opacity: 0.18 }}
+      />
+
       <View
         className="h-14 w-14 items-center justify-center rounded-full"
         style={{ backgroundColor: AMBER }}
@@ -398,7 +514,12 @@ function JoinDeliveryCard({ onPress }: { onPress: () => void }) {
         </Text>
       </View>
 
-      <MaterialCommunityIcons name="chevron-right" size={26} color="#FFFFFF" />
+      <View
+        className="h-9 w-9 items-center justify-center rounded-full"
+        style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}
+      >
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#FFFFFF" />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -428,16 +549,12 @@ export default function Shop() {
   const [placedOrder, setPlacedOrder] =
     useState<PlaceOrderResponse | null>(null);
 
-  const cardWidth = (width - 32 - 12) / 2;
-  const bannerWidth = width - 32;
+  const bannerWidth = width - SIDE * 2;
 
+  // Search now looks through categories (products live inside each category).
   const q = query.trim().toLowerCase();
-
-  const visible = PRODUCTS.filter(
-    (p) =>
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q),
+  const visibleCategories = CATEGORIES.filter(
+    (c) => !q || c.name.toLowerCase().includes(q),
   );
 
   // ==================== NAVIGATION FUNCTIONS ====================
@@ -449,6 +566,11 @@ export default function Shop() {
     });
 
     setCurrentScreen('category');
+  };
+
+  const openCategoryById = (id?: string) => {
+    const c = CATEGORIES.find((x) => x.id === id);
+    if (c) openCategory(c);
   };
 
   const openCheckout = (product: any) => {
@@ -520,34 +642,71 @@ export default function Shop() {
     return <DeliveryBoyForm onBack={() => setCurrentScreen('shop')} />;
   }
 
-  // ==================== SHOP HOME SCREEN ====================
+  // ==================== SHOP HOME SCREEN (ADS ONLY) ====================
 
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        paddingBottom: 130,
-      }}
+      style={{ backgroundColor: PAGE_BG }}
+      contentContainerStyle={{ paddingBottom: 130 }}
     >
-      {/* Search bar */}
+      {/* Hero header */}
       <View
-        className="h-12 flex-row items-center rounded-full bg-white px-4"
-        style={cardShadow}
+        style={{
+          backgroundColor: FOREST,
+          paddingHorizontal: SIDE,
+          paddingTop: 16,
+          paddingBottom: 40,
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+          overflow: 'hidden',
+        }}
       >
-        <MaterialCommunityIcons name="magnify" size={22} color={MUTED} />
+        <View
+          className="absolute -right-10 -top-12 h-40 w-40 rounded-full"
+          style={{ backgroundColor: LEAF, opacity: 0.4 }}
+        />
+        <View
+          className="absolute -left-12 bottom-0 h-24 w-24 rounded-full"
+          style={{ backgroundColor: AMBER, opacity: 0.14 }}
+        />
+
+        <View className="flex-row items-center">
+          <View className="flex-1">
+            <Text className="text-[13px]" style={{ color: '#CFE8D2' }}>
+              Namaste, farmer
+            </Text>
+            <Text className="mt-0.5 text-[22px] font-extrabold text-white">
+              Everything your farm needs
+            </Text>
+          </View>
+
+          <View
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+          >
+            <MaterialCommunityIcons name="storefront-outline" size={26} color="#FFFFFF" />
+          </View>
+        </View>
+      </View>
+
+      {/* Search bar overlaps the header */}
+      <View
+        className="h-[52px] flex-row items-center rounded-full bg-white px-4"
+        style={{ marginHorizontal: SIDE, marginTop: -26, ...cardShadow }}
+      >
+        <MaterialCommunityIcons name="magnify" size={22} color={LEAF} />
 
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search seeds, tools, machinery..."
+          placeholder="Search categories: seeds, tools, feed..."
           placeholderTextColor={MUTED}
           returnKeyType="search"
           className="ml-2 flex-1 text-[14px]"
           style={{ color: INK }}
-          accessibilityLabel="Search products"
+          accessibilityLabel="Search categories"
         />
 
         {query.length > 0 && (
@@ -565,60 +724,61 @@ export default function Shop() {
         )}
       </View>
 
-      {/* Categories */}
-      <SectionTitle title="What are you looking for?" />
+      {/* Trust strip (Genuine / Fair prices / Delivery) */}
+      <View className="mt-4">
+        <TrustStrip />
+      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingRight: 8 }}
-        className="-mx-1 px-1"
-      >
-        {CATEGORIES.map((c) => (
-          <CategoryItem
-            key={c.id}
-            c={c}
-            active={false}
-            onPress={() => openCategory(c)}
-          />
-        ))}
-      </ScrollView>
+      {/* Categories (navigation to the product screens) */}
+      <SectionTitle title="Shop by category" />
 
-      {/* Join as delivery boy */}
-      <JoinDeliveryCard onPress={() => setCurrentScreen('deliveryForm')} />
-
-      {/* Offers & Promotions */}
-      <SectionTitle title="Offers & Promotions" />
-
-      <PromoVideo width={bannerWidth} />
-
-      {/* Trending */}
-      <SectionTitle title="Trending Products" />
-
-      <BannerSlider items={TRENDING_BANNERS} width={bannerWidth} />
-
-      {/* Recommended products */}
-      <SectionTitle title="Recommended Products" action="See all" />
-
-      {visible.length === 0 ? (
-        <View className="items-center py-10">
+      {visibleCategories.length === 0 ? (
+        <View className="items-center px-6 py-6">
           <MaterialCommunityIcons name="magnify-close" size={36} color={MUTED} />
-
-          <Text className="mt-2 text-[14px]" style={{ color: MUTED }}>
-            No products match “{query}”. Try another name.
+          <Text
+            className="mt-2 text-center text-[14px]"
+            style={{ color: MUTED }}
+          >
+            No category matches “{query}”. Try seeds, tools or feed.
           </Text>
         </View>
       ) : (
-        <View className="flex-row flex-wrap justify-between">
-          {visible.map((p) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-              width={cardWidth}
-              onBuyNow={openCheckout}
-            />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: SIDE }}
+        >
+          {visibleCategories.map((c) => (
+            <CategoryItem key={c.id} c={c} onPress={() => openCategory(c)} />
           ))}
-        </View>
+        </ScrollView>
+      )}
+
+      {/* Advertisements: hidden while searching so results stay in focus */}
+      {!q && (
+        <>
+          {/* Offers & Promotions video */}
+          <SectionTitle title="Offers & Promotions" />
+          <PromoVideo width={bannerWidth} />
+
+          {/* Offer tiles */}
+          <SectionTitle
+            title="Special offers"
+            subtitle="Tap an offer to see what is on sale"
+          />
+          <OfferTiles tiles={OFFER_TILES} onPress={openCategoryById} />
+
+          {/* Trending banners */}
+          <SectionTitle title="Trending now" />
+          <BannerSlider
+            items={TRENDING_BANNERS}
+            width={bannerWidth}
+            onPressItem={(b) => openCategoryById(b.categoryId)}
+          />
+
+          {/* Join as delivery boy */}
+          <JoinDeliveryCard onPress={() => setCurrentScreen('deliveryForm')} />
+        </>
       )}
     </ScrollView>
   );

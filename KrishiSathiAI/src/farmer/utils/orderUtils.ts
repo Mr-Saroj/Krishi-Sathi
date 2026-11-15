@@ -1,9 +1,8 @@
-
 export const formatPrice = (amount: number): string => {
   return `₹${(amount || 0).toLocaleString("en-IN")}`;
 };
 
-export const formatOrderDate = (date: string): string => {
+export const formatOrderDate = (date?: string): string => {
   if (!date) return "Date unavailable";
 
   const parsedDate = new Date(date);
@@ -37,6 +36,7 @@ export const getOrderStatusColor = (status: string): string => {
 
     case "CONFIRMED":
     case "PROCESSING":
+    case "ACCEPTED":
       return "#2563EB";
 
     case "SHIPPED":
@@ -45,6 +45,23 @@ export const getOrderStatusColor = (status: string): string => {
 
     case "CANCELLED":
     case "REJECTED":
+      return "#DC2626";
+
+    default:
+      return "#64748B";
+  }
+};
+
+export const getPaymentStatusColor = (status: string): string => {
+  switch (status?.toUpperCase()) {
+    case "PAID":
+      return "#15803D";
+
+    case "PENDING":
+      return "#D97706";
+
+    case "FAILED":
+    case "REFUNDED":
       return "#DC2626";
 
     default:

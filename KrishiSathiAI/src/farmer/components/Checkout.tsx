@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import {
     View,
@@ -17,7 +17,9 @@ import useCheckout, {
     MIN_QUANTITY,
     formatAddress,
     formatPrice,
+
 } from '../hooks/useCheckout';
+
 
 const FOREST = '#14532D';
 const GREEN = '#2E7D32';
@@ -62,6 +64,7 @@ export default function Checkout({
         handlePlaceOrder,
         isPlacingOrder,
     } = useCheckout(product, onOrderSuccess);
+    const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD');
 
     // ==================== PRODUCT ERROR ====================
 
@@ -765,6 +768,7 @@ export default function Checkout({
                     </View>
                 </View>
 
+
                 {/* ==================== PAYMENT METHOD ==================== */}
 
                 <View
@@ -778,19 +782,21 @@ export default function Checkout({
                         Payment Method
                     </Text>
 
-                    <Text
-                        className="mt-1 text-xs"
-                        style={{ color: MUTED }}
-                    >
+                    <Text className="mt-1 text-xs" style={{ color: MUTED }}>
                         Choose how you want to pay
                     </Text>
 
-                    <View
+                    {/* Cash on Delivery */}
+                    <TouchableOpacity
+                        onPress={() => setPaymentMethod('COD')}
+                        activeOpacity={0.85}
                         className="mt-4 flex-row items-center rounded-2xl p-4"
                         style={{
-                            backgroundColor: '#EDF7E9',
+                            backgroundColor:
+                                paymentMethod === 'COD' ? '#EDF7E9' : '#FFFFFF',
                             borderWidth: 1.5,
-                            borderColor: GREEN,
+                            borderColor:
+                                paymentMethod === 'COD' ? GREEN : BORDER,
                         }}
                     >
                         <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white">
@@ -806,19 +812,81 @@ export default function Checkout({
                                 Cash on Delivery
                             </Text>
 
-                            <Text
-                                className="mt-1 text-xs"
-                                style={{ color: MUTED }}
-                            >
+                            <Text className="mt-1 text-xs" style={{ color: MUTED }}>
                                 Pay when your order arrives
                             </Text>
                         </View>
 
                         <MaterialCommunityIcons
-                            name="check-circle"
-                            size={25}
-                            color={GREEN}
+                            name={
+                                paymentMethod === 'COD'
+                                    ? 'radiobox-marked'
+                                    : 'radiobox-blank'
+                            }
+                            size={24}
+                            color={paymentMethod === 'COD' ? GREEN : MUTED}
                         />
+                    </TouchableOpacity>
+
+                    {/* Online Payment */}
+                    <TouchableOpacity
+                        onPress={() => setPaymentMethod('ONLINE')}
+                        activeOpacity={0.85}
+                        className="mt-3 flex-row items-center rounded-2xl p-4"
+                        style={{
+                            backgroundColor:
+                                paymentMethod === 'ONLINE' ? '#EDF7E9' : '#FFFFFF',
+                            borderWidth: 1.5,
+                            borderColor:
+                                paymentMethod === 'ONLINE' ? GREEN : BORDER,
+                        }}
+                    >
+                        <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white">
+                            <MaterialCommunityIcons
+                                name="credit-card-outline"
+                                size={27}
+                                color={FOREST}
+                            />
+                        </View>
+
+                        <View className="ml-3 flex-1">
+                            <Text className="text-sm font-extrabold text-gray-900">
+                                Online Payment
+                            </Text>
+
+                            <Text className="mt-1 text-xs" style={{ color: MUTED }}>
+                                UPI, Debit/Credit Card, Net Banking
+                            </Text>
+                        </View>
+
+                        <MaterialCommunityIcons
+                            name={
+                                paymentMethod === 'ONLINE'
+                                    ? 'radiobox-marked'
+                                    : 'radiobox-blank'
+                            }
+                            size={24}
+                            color={paymentMethod === 'ONLINE' ? GREEN : MUTED}
+                        />
+                    </TouchableOpacity>
+
+                    {/* Payment Information */}
+                    <View className="mt-3 flex-row items-start rounded-xl p-3"
+                        style={{ backgroundColor: '#F5F8F2' }}
+                    >
+                        <MaterialCommunityIcons
+                            name="information-outline"
+                            size={18}
+                            color={FOREST}
+                        />
+
+                        <Text className="ml-2 flex-1 text-xs leading-5"
+                            style={{ color: MUTED }}
+                        >
+                            {paymentMethod === 'COD'
+                                ? 'Keep the total amount ready and pay the delivery partner when your order arrives.'
+                                : 'You will be redirected to a secure payment gateway to complete your payment.'}
+                        </Text>
                     </View>
                 </View>
 
@@ -954,7 +1022,7 @@ export default function Checkout({
                 {/* ==================== PLACE ORDER ==================== */}
 
                 <TouchableOpacity
-                    onPress={handlePlaceOrder}
+                    onPress={() => handlePlaceOrder(paymentMethod)}
                     disabled={isPlacingOrder}
                     activeOpacity={0.85}
                     className="flex-row items-center justify-center rounded-2xl py-4"
@@ -1001,8 +1069,9 @@ export default function Checkout({
                     className="mt-3 text-center text-xs leading-5"
                     style={{ color: MUTED }}
                 >
-                    Cash on Delivery · Pay {formatPrice(totalAmount)} when your
-                    order arrives.
+                    {paymentMethod === 'COD'
+                        ? `Pay ${formatPrice(totalAmount)} when your order arrives.`
+                        : `Pay ${formatPrice(totalAmount)} securely using Razorpay.`}
                 </Text>
             </ScrollView>
         </View>

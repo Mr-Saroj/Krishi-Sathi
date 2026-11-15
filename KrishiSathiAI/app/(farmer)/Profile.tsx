@@ -19,6 +19,9 @@ import {
 
 import FarmerAddress from "../../src/farmer/components/FarmerAddressScreen";
 import OrderList from "../../src/farmer/components/OrderList";
+import OrderDetails from "../../src/farmer/components/OrderDetails";
+
+import { useOrderHistory } from "../../src/farmer/hooks/useOrderHistory";
 
 type IconName =
   React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -86,7 +89,31 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   const [showAddress, setShowAddress] = useState(false);
-  const [showOrders, setShowOrders] = useState(false);
+
+  // ORDER HISTORY HOOK
+  const {
+    orders,
+    selectedOrder,
+    selectedOrderId,
+
+    loading: ordersLoading,
+    detailsLoading,
+    refreshing,
+
+    error,
+    detailsError,
+
+    showOrders,
+
+    openOrders,
+    closeOrders,
+
+    openOrderDetails,
+    closeOrderDetails,
+    retryOrderDetails,
+
+    fetchOrders,
+  } = useOrderHistory();
 
   // FETCH LOGGED-IN FARMER DETAILS
   useEffect(() => {
@@ -131,12 +158,9 @@ export default function Profile() {
     setShowAddress(true);
   };
 
-  // OPEN ORDER HISTORY
-  const handleOrderHistory = () => {
-    setShowOrders(true);
-  };
-
-  // SHOW ADDRESS SCREEN
+  // ----------------------------------
+  // SCREEN 1: ADDRESS
+  // ----------------------------------
   if (showAddress) {
     return (
       <FarmerAddress
@@ -145,15 +169,41 @@ export default function Profile() {
     );
   }
 
-  // SHOW ORDER HISTORY SCREEN
-  if (showOrders) {
+  // ----------------------------------
+  // SCREEN 2: ORDER DETAILS
+  // ----------------------------------
+  if (showOrders && selectedOrderId) {
     return (
-      <OrderList
-        onBack={() => setShowOrders(false)}
+      <OrderDetails
+        order={selectedOrder}
+        loading={detailsLoading}
+        error={detailsError}
+        onBack={closeOrderDetails}
+        onRetry={retryOrderDetails}
       />
     );
   }
 
+  // ----------------------------------
+  // SCREEN 3: ORDER HISTORY
+  // ----------------------------------
+  if (showOrders) {
+    return (
+      <OrderList
+        orders={orders ?? []}
+        loading={ordersLoading}
+        refreshing={refreshing}
+        error={error}
+        onBack={closeOrders}
+        onRefresh={() => fetchOrders(true)}
+        onSelectOrder={openOrderDetails}
+      />
+    );
+  }
+
+  // ----------------------------------
+  // SCREEN 4: PROFILE
+  // ----------------------------------
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -220,7 +270,7 @@ export default function Profile() {
         {/* ORDER HISTORY */}
         <TouchableOpacity
           activeOpacity={0.75}
-          onPress={handleOrderHistory}
+          onPress={openOrders}
         >
           <Row
             icon="clipboard-list-outline"

@@ -1,105 +1,60 @@
-
 import React from "react";
 
 import {
+  ActivityIndicator,
   ScrollView,
   Text,
   View,
   TouchableOpacity,
+  RefreshControl,
+  Image,
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { formatOrderDate ,formatPrice,getOrderStatusColor,getOrderStatusLabel} from "../utils/orderUtils";
 
+import {
+  formatPrice,
+  getOrderStatusColor,
+  getOrderStatusLabel,
+  getPaymentStatusColor,
+} from "../utils/orderUtils";
 
-type IconName =
-  React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+import type { FarmerOrder } from "../types/order.types";
 
 const FOREST = "#14532D";
 const LEAF = "#2E7D32";
-const MUTED = "#5E7365";
 
 interface Props {
+  orders: FarmerOrder[];
+  loading: boolean;
+  refreshing: boolean;
+  error: string | null;
+
   onBack: () => void;
+  onRefresh: () => void;
+  onSelectOrder: (orderId: string) => void;
 }
 
-// Temporary dummy data for UI testing
-const dummyOrders = [
-  {
-    id: "ORD1001",
-    orderNumber: "ORD1001",
-    items: [
-      {
-        productId: "P101",
-        productName: "Organic Tomato Seeds",
-        quantity: 2,
-        quantityUnit: "pack",
-        price: 120,
-      },
-      {
-        productId: "P102",
-        productName: "Organic Fertilizer",
-        quantity: 5,
-        quantityUnit: "kg",
-        price: 80,
-      },
-    ],
-    totalAmount: 640,
-    orderStatus: "DELIVERED",
-    paymentStatus: "PAID",
-    createdAt: "2026-11-02T10:30:00",
-  },
-  {
-    id: "ORD1002",
-    orderNumber: "ORD1002",
-    items: [
-      {
-        productId: "P103",
-        productName: "Rice Seeds",
-        quantity: 3,
-        quantityUnit: "kg",
-        price: 150,
-      },
-    ],
-    totalAmount: 450,
-    orderStatus: "PROCESSING",
-    paymentStatus: "PAID",
-    createdAt: "2026-11-04T14:20:00",
-  },
-  {
-    id: "ORD1003",
-    orderNumber: "ORD1003",
-    items: [
-      {
-        productId: "P104",
-        productName: "Crop Protection Spray",
-        quantity: 2,
-        quantityUnit: "piece",
-        price: 250,
-      },
-    ],
-    totalAmount: 500,
-    orderStatus: "PENDING",
-    paymentStatus: "PENDING",
-    createdAt: "2026-11-05T09:15:00",
-  },
-];
-
-function OrderCard({ order }: { order: (typeof dummyOrders)[number] }) {
+function OrderCard({
+  order,
+  onPress,
+}: {
+  order: FarmerOrder;
+  onPress: () => void;
+}) {
   const statusColor = getOrderStatusColor(order.orderStatus);
 
   return (
-    <View className="mb-4 rounded-2xl bg-white p-4">
-
-      {/* ORDER HEADER */}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      className="mb-4 rounded-2xl bg-white p-4"
+    >
+      {/* HEADER */}
       <View className="flex-row items-center justify-between">
-        <View>
-          <Text className="text-[11px] text-gray-500">
-            Order ID
-          </Text>
-
+        <View className="flex-1">
           <Text className="mt-1 font-bold text-[#1F2A24]">
-            #{order.orderNumber}
+           PRODUCT STATUS:
           </Text>
         </View>
 
@@ -118,47 +73,59 @@ function OrderCard({ order }: { order: (typeof dummyOrders)[number] }) {
 
       <View className="my-3 border-t border-gray-100" />
 
-      {/* PRODUCTS */}
-      {order.items.map((item, index) => (
-        <View
-          key={`${item.productId}-${index}`}
-          className="mb-3 flex-row items-center"
-        >
-          <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#E8F5E9]">
+      {/* PRODUCT */}
+      <View className="flex-row items-center">
+        {/* PRODUCT IMAGE */}
+        <View className="h-16 w-16 overflow-hidden items-center justify-center rounded-xl bg-[#E8F5E9]">
+          {order.productImage ? (
+            <Image
+              source={{ uri: order.productImage }}
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+          ) : (
             <MaterialCommunityIcons
               name="sprout"
-              size={23}
+              size={30}
               color={LEAF}
             />
-          </View>
+          )}
+        </View>
 
-          <View className="ml-3 flex-1">
-            <Text className="font-semibold text-[#1F2A24]">
-              {item.productName}
-            </Text>
+        {/* PRODUCT DETAILS */}
+        <View className="ml-3 flex-1">
+          <Text
+            className="font-bold text-[#1F2A24]"
+            numberOfLines={2}
+          >
+            {order.productName || "Product unavailable"}
+          </Text>
 
-            <Text className="mt-1 text-[12px] text-gray-500">
-              Qty: {item.quantity} {item.quantityUnit}
-            </Text>
-          </View>
+          <Text className="mt-1 text-[11px] text-gray-500">
+            Product ID: {order.productId}
+          </Text>
 
-          <Text className="font-semibold text-[#1F2A24]">
-            {formatPrice(item.price * item.quantity)}
+          <Text className="mt-1 text-[12px] text-gray-500">
+            Quantity: {order.quantity} × {order.productQuantity}
           </Text>
         </View>
-      ))}
 
-      <View className="my-2 border-t border-gray-100" />
+        <Text className="ml-2 font-bold text-[#1F2A24]">
+          {formatPrice(order.productTotal)}
+        </Text>
+      </View>
 
-      {/* ORDER DETAILS */}
+      <View className="my-3 border-t border-gray-100" />
+
+      {/* TOTAL */}
       <View className="flex-row items-center justify-between">
         <View>
           <Text className="text-[11px] text-gray-500">
-            Order Date
+            Payment Method
           </Text>
 
           <Text className="mt-1 text-[12px] font-semibold text-gray-700">
-            {formatOrderDate(order.createdAt)}
+            {order.paymentMode}
           </Text>
         </View>
 
@@ -168,30 +135,50 @@ function OrderCard({ order }: { order: (typeof dummyOrders)[number] }) {
           </Text>
 
           <Text className="mt-1 text-[17px] font-extrabold text-[#14532D]">
-            {formatPrice(order.totalAmount)}
+            {formatPrice(order.totalSumFee)}
           </Text>
         </View>
       </View>
 
-      {/* PAYMENT STATUS */}
-      <View className="mt-3 flex-row items-center">
-        <MaterialCommunityIcons
-          name="credit-card-check-outline"
-          size={16}
-          color={MUTED}
-        />
-
-        <Text className="ml-2 text-[12px] text-gray-500">
-          Payment: {order.paymentStatus}
+      {/* PAYMENT */}
+      <View className="mt-3 flex-row items-center justify-between">
+        <Text className="text-[12px] text-gray-500">
+          Payment:{" "}
+          <Text
+            style={{
+              color: getPaymentStatusColor(order.paymentStatus),
+              fontWeight: "700",
+            }}
+          >
+            {order.paymentStatus}
+          </Text>
         </Text>
+
+        <View className="flex-row items-center">
+          <Text className="mr-1 text-[12px] font-semibold text-[#2E7D32]">
+            View Details
+          </Text>
+
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={19}
+            color={LEAF}
+          />
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
-export default function OrderList({ onBack }: Props) {
-  const orders = dummyOrders;
-
+export default function OrderList({
+  orders,
+  loading,
+  refreshing,
+  error,
+  onBack,
+  onRefresh,
+  onSelectOrder,
+}: Props) {
   return (
     <View className="flex-1 bg-[#FAFAF6]">
 
@@ -221,49 +208,93 @@ export default function OrderList({ onBack }: Props) {
 
         <View className="rounded-full bg-[#E8F5E9] px-3 py-2">
           <Text className="text-[12px] font-bold text-[#14532D]">
-            {orders.length} Orders
+            {(orders ?? []).length} Orders
           </Text>
         </View>
       </View>
 
-      {/* ORDER LIST */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 40,
-        }}
-      >
-        <Text className="mb-3 text-[13px] font-bold text-[#5E7365]">
-          RECENT ORDERS
-        </Text>
+      {/* CONTENT */}
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={FOREST} />
 
-        {orders.length > 0 ? (
-          orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-            />
-          ))
-        ) : (
-          <View className="items-center justify-center py-20">
-            <MaterialCommunityIcons
-              name="clipboard-text-outline"
-              size={75}
-              color="#A5B5A8"
-            />
+          <Text className="mt-3 text-[13px] text-gray-500">
+            Loading your orders...
+          </Text>
+        </View>
+      ) : error ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={60}
+            color="#DC2626"
+          />
 
-            <Text className="mt-4 text-[18px] font-bold text-[#1F2A24]">
-              No Orders Yet
+          <Text className="mt-4 text-center font-bold text-[#1F2A24]">
+            Unable to load orders
+          </Text>
+
+          <Text className="mt-2 text-center text-[13px] text-gray-500">
+            {error}
+          </Text>
+
+          <TouchableOpacity
+            onPress={onRefresh}
+            className="mt-5 rounded-xl bg-[#14532D] px-6 py-3"
+          >
+            <Text className="font-bold text-white">
+              Try Again
             </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[FOREST]}
+            />
+          }
+          contentContainerStyle={{
+            padding: 16,
+            paddingBottom: 40,
+            flexGrow: 1,
+          }}
+        >
+          <Text className="mb-3 text-[13px] font-bold text-[#5E7365]">
+            RECENT ORDERS
+          </Text>
 
-            <Text className="mt-2 text-center text-[13px] text-gray-500">
-              Your purchased products will appear here.
-              Start shopping with Krishi Sathi!
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+          {(orders ?? []).length > 0 ? (
+            (orders ?? []).map((order) => (
+              <OrderCard
+                key={order.orderId}
+                order={order}
+                onPress={() => onSelectOrder(order.orderId)}
+              />
+            ))
+          ) : (
+            <View className="flex-1 items-center justify-center py-20">
+              <MaterialCommunityIcons
+                name="clipboard-text-outline"
+                size={75}
+                color="#A5B5A8"
+              />
+
+              <Text className="mt-4 text-[18px] font-bold text-[#1F2A24]">
+                No Orders Yet
+              </Text>
+
+              <Text className="mt-2 text-center text-[13px] text-gray-500">
+                Your purchased products will appear here.
+                Start shopping with Krishi Sathi!
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }

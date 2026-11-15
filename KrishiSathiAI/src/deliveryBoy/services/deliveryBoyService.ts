@@ -7,11 +7,23 @@ export type OnlineStatusResponse = {
   isBusy: boolean;
 };
 
-// PATCH /api/farmer/delivery-boy/online-status
-// The base URL already ends with /api, and the JWT is attached by your request interceptor.
-export async function updateOnlineStatus(online: boolean): Promise<OnlineStatusResponse> {
-  const { data } = await api.patch<OnlineStatusResponse>('/farmer/delivery-boy/online-status', {
-    online,
-  });
+// GET: Fetch current online/offline status from MongoDB
+export async function getOnlineStatus(): Promise<OnlineStatusResponse> {
+  const { data } = await api.get<OnlineStatusResponse>(
+    "/farmer/delivery-boy/online-status"
+  );
+
+  return data;
+}
+
+// PATCH: Update online/offline status
+export async function updateOnlineStatus(
+  online: boolean
+): Promise<OnlineStatusResponse> {
+  const { data } = await api.patch<OnlineStatusResponse>(
+    "/farmer/delivery-boy/online-status",
+    { online }
+  );
+
   return data;
 }

@@ -20,7 +20,12 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/app_logo1.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.mrsaroj.KrishiSathiAI"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +40,12 @@
           "cameraPermission": "KrishiSathi AI needs the camera to scan crop problems."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "03e67f9a-b070-49ff-a16b-aa83b49f3f67"
+      }
+    }
   }
 }

@@ -1,590 +1,812 @@
-import React, { useEffect, useMemo, useState } from "react";
-import ProductManagementSkeleton from "../Skeliton/ProductManagementSkeleton";
-import { useToast } from "../hooks/useProductManagement";
-import {
-  CATEGORY_OPTIONS,
-  money,
-  inputBase,
-} from "../utils/useProductManagementUtils";
-import {
-  createCatalogProduct,
-  fetchCatalogProducts,
-  updateCatalogProductPrice,
-} from "../services/catalogService";
 
-const emptyForm = {
-  id: "",
-  category: CATEGORY_OPTIONS[0],
-  name: "",
-  brand: "",
-  description: "",
-  quantity: "",
-  quantityUnit: "KG",
-  price: "",
-};
+import React, { useEffect, useMemo, useState } from "react";
+import useFinanceSettlement from "../hooks/useFinanceSettlement";
+
+/* -------------------------------------------------- */
+/* Utility functions                                  */
+/* -------------------------------------------------- */
+
+const money = (amount) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(amount ?? 0));
+
+const getOrderId = (order) =>
+  order?.orderId ?? order?.id ?? order?._id ?? "";
+
+const isPaid = (order) =>
+  String(order?.paymentStatus ?? "").toUpperCase() === "PAID";
+
+const isSettlementPending = (order) =>
+  String(order?.settlementStatus ?? "").toUpperCase() === "PENDING";
 
 const getErrorMessage = (error) =>
   error?.response?.data?.message ||
   error?.response?.data?.detail ||
+  (typeof error?.response?.data === "string"
+    ? error.response.data
+    : null) ||
   error?.message ||
   "Something went wrong. Please try again.";
 
-const ProductManagement = () => {
-  const { toast, notify } = useToast(2800);
+/* -------------------------------------------------- */
+/* Status Badge                                       */
+/* -------------------------------------------------- */
 
-  const [catalog, setCatalog] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [error, setError] = useState("");
-  const [priceProduct, setPriceProduct] = useState(null);
-  const [newPrice, setNewPrice] = useState("");
+const StatusBadge = ({ value }) => {
+  const status = String(value ?? "UNKNOWN").toUpperCase();
 
-  const loadCatalog = async () => {
-    setIsLoading(true);
-    try {
-      const products = await fetchCatalogProducts();
-      setCatalog(Array.isArray(products) ? products : []);
-    } catch (err) {
-      setError(getErrorMessage(err));
-      notify(`Could not load catalog: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoading(false);
-    }
+  const styles = {
+    PAID: "bg-green-100 text-green-700",
+    COMPLETED: "bg-green-100 text-green-700",
+    PENDING: "bg-amber-100 text-amber-700",
+    FAILED: "bg-rose-100 text-rose-700",
+    CANCELLED: "bg-rose-100 text-rose-700",
   };
-
-  useEffect(() => {
-    loadCatalog();
-    // loadCatalog is intentionally called once on initial mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!imageFile) {
-      setImagePreview("");
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(imageFile);
-    setImagePreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [imageFile]);
-
-  const visibleProducts = useMemo(() => {
-    const q = query.trim().toLowerCase();
-
-    return catalog.filter((product) => {
-      const values = [
-        product.id,
-        product.name,
-        product.brand,
-        product.category,
-        product.description,
-      ];
-      const matchesQuery = values.some((value) =>
-        String(value ?? "").toLowerCase().includes(q)
-      );
-      const matchesCategory =
-        categoryFilter === "ALL" || product.category === categoryFilter;
-
-      return matchesQuery && matchesCategory;
-    });
-  }, [catalog, query, categoryFilter]);
-
-  const updateField = (field) => (event) => {
-    setForm((previous) => ({ ...previous, [field]: event.target.value }));
-    setError("");
-  };
-
-  const openForm = () => {
-    setForm(emptyForm);
-    setImageFile(null);
-    setError("");
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    if (isSaving) return;
-    setShowForm(false);
-    setImageFile(null);
-    setImagePreview("");
-    setError("");
-  };
-
-  const saveProduct = async (event) => {
-    event.preventDefault();
-    setError("");
-
-    const id = form.id.trim().toUpperCase();
-    const name = form.name.trim();
-    const brand = form.brand.trim();
-    const description = form.description.trim();
-    const quantity = Number(form.quantity);
-    const quantityUnit = form.quantityUnit;
-    const price = Number(form.price);
-
-    if (!id || !name || !brand || !description) {
-      setError("Product ID, name, and brand and description are required.");
-      return;
-    }
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      setError("Enter a valid quantity greater than zero.");
-      return;
-    }
-    if (!Number.isFinite(price) || price <= 0) {
-      setError("Enter a valid price greater than 0.");
-      return;
-    }
-    if (!imageFile) {
-      setError("Please select a product image.");
-      return;
-    }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type)) {
-      setError("Only JPEG, PNG, and WebP images are allowed.");
-      return;
-    }
-    if (imageFile.size > 5 * 1024 * 1024) {
-      setError("Image must be 5 MB or smaller.");
-      return;
-    }
-    if (catalog.some((product) => String(product.id).toUpperCase() === id)) {
-      setError("A product with this ID already exists.");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const created = await createCatalogProduct({
-        id,
-        category: form.category,
-        name,
-        brand,
-        description,
-        quantity,
-        quantityUnit,
-        price,
-        image: imageFile,
-      });
-
-      setCatalog((previous) => [
-        created,
-        ...previous.filter((product) => product.id !== created.id),
-      ]);
-      setShowForm(false);
-      setForm(emptyForm);
-      setImageFile(null);
-      setImagePreview("");
-      setQuery("");
-      setCategoryFilter("ALL");
-      notify("Product added to catalog successfully.");
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const openPriceEditor = (product) => {
-    setPriceProduct(product);
-    setNewPrice(String(product.price ?? ""));
-    setError("");
-  };
-
-  const savePrice = async (event) => {
-    event.preventDefault();
-    const price = Number(newPrice);
-
-    if (!Number.isFinite(price) || price <= 0) {
-      setError("Enter a valid price greater than 0.");
-      return;
-    }
-
-    setIsUpdatingPrice(true);
-    setError("");
-    try {
-      const updated = await updateCatalogProductPrice(priceProduct.id, price);
-      setCatalog((previous) =>
-        previous.map((product) =>
-          product.id === priceProduct.id ? updated : product
-        )
-      );
-      setPriceProduct(null);
-      setNewPrice("");
-      notify("Catalog price updated successfully.");
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsUpdatingPrice(false);
-    }
-  };
-
-  if (isLoading) return <ProductManagementSkeleton />;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold ${
+        styles[status] || "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {status}
+    </span>
+  );
+};
+
+/* -------------------------------------------------- */
+/* Detail Item                                        */
+/* -------------------------------------------------- */
+
+const DetailItem = ({ label, value }) => (
+  <div className="min-w-0">
+    <p className="text-xs font-medium text-outline">{label}</p>
+
+    <p className="mt-1 break-words text-sm font-semibold text-primary">
+      {value !== undefined && value !== null && value !== ""
+        ? value
+        : "Not available"}
+    </p>
+  </div>
+);
+
+/* -------------------------------------------------- */
+/* Detail Section                                     */
+/* -------------------------------------------------- */
+
+const DetailSection = ({ title, icon, children }) => (
+  <section className="min-w-0 rounded-xl bg-primary/[0.035] p-4">
+    <div className="mb-4 flex items-center gap-2">
+      <span className="material-symbols-outlined text-xl text-primary">
+        {icon}
+      </span>
+
+      <h3 className="text-sm font-bold text-primary">{title}</h3>
+    </div>
+
+    <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+      {children}
+    </div>
+  </section>
+);
+
+/* -------------------------------------------------- */
+/* Finance Settlement                                 */
+/* -------------------------------------------------- */
+
+const FinanceSettlement = () => {
+  const {
+    orders,
+    isLoading,
+    isRefreshing,
+    processingOrderId,
+    error,
+    toast,
+    loadOrders,
+    completeSettlement,
+  } = useFinanceSettlement();
+
+  const [query, setQuery] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  /* -------------------------------------------------- */
+  /* Search orders                                      */
+  /* -------------------------------------------------- */
+
+  const visibleOrders = useMemo(() => {
+    const search = query.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      if (!search) return true;
+
+      const values = [
+        getOrderId(order),
+        order.farmerId,
+        order.productId,
+        order.sellerName,
+        order.sellerId,
+        order.sellerPhone,
+        order.deliveryBoyName,
+        order.deliveryBoyId,
+        order.deliveryBoyPhone,
+        order.paymentMode,
+        order.paymentStatus,
+        order.settlementStatus,
+      ];
+
+      return values.some((value) =>
+        String(value ?? "").toLowerCase().includes(search)
+      );
+    });
+  }, [orders, query]);
+
+  /* -------------------------------------------------- */
+  /* Modal scroll handling                              */
+  /* -------------------------------------------------- */
+
+  useEffect(() => {
+    if (!selectedOrder) return;
+
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSelectedOrder(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedOrder]);
+
+  /* -------------------------------------------------- */
+  /* Complete settlement                                */
+  /* -------------------------------------------------- */
+
+  const handleComplete = async () => {
+    if (!selectedOrder) return;
+
+    const orderId = getOrderId(selectedOrder);
+
+    if (!orderId) {
+      window.alert("Order ID is missing.");
+      return;
+    }
+
+    if (!isPaid(selectedOrder)) {
+      window.alert("Payment must be PAID before settlement.");
+      return;
+    }
+
+    if (!isSettlementPending(selectedOrder)) {
+      window.alert("This settlement is not pending.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to complete settlement for order ${orderId}?`
+    );
+
+    if (!confirmed) return;
+
+    const success = await completeSettlement(orderId);
+
+    if (success) {
+      setSelectedOrder(null);
+    }
+  };
+
+  /* -------------------------------------------------- */
+  /* Loading                                            */
+  /* -------------------------------------------------- */
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-w-0 space-y-6 px-4 pr-5 sm:px-5 sm:pr-6 lg:pr-8">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-primary/10" />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
+          <div className="h-28 animate-pulse rounded-2xl bg-primary/5" />
+        </div>
+
+        <div className="h-72 animate-pulse rounded-2xl bg-primary/5" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="box-border w-full min-w-0 max-w-full space-y-6 px-4 pr-5 pb-6 sm:space-y-8 sm:px-5 sm:pr-6 lg:pr-8">
+
+      {/* ============================================== */}
+      {/* PAGE HEADING                                   */}
+      {/* ============================================== */}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+
+        <div className="min-w-0">
           <h1 className="text-xl font-extrabold text-primary sm:text-2xl">
-            Product Catalog
+            Finance & COD Settlement
           </h1>
+
           <p className="mt-1 text-sm text-on-surface-variant">
-            Add products, upload images, view catalog items, and update prices.
+            Review order payments and manage pending settlements.
           </p>
         </div>
+
         <button
           type="button"
-          onClick={openForm}
-          className="neu-btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
+          onClick={() => loadOrders(false)}
+          disabled={isRefreshing}
+          className="neu-btn inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <span className="material-symbols-outlined text-lg">add</span>
-          Add Catalog
+          <span className="material-symbols-outlined text-lg">
+            refresh
+          </span>
+
+          {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
+
       </div>
 
-      {error && !showForm && !priceProduct && (
-        <div role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
+      {/* ============================================== */}
+      {/* SUMMARY CARDS                                  */}
+      {/* ============================================== */}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+        {/* Pending settlements */}
+
+        <div className="neu-raised min-w-0 rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-3">
+
+            <p className="text-sm font-medium text-on-surface-variant">
+              Pending Settlements
+            </p>
+
+            <span className="material-symbols-outlined text-2xl text-amber-600">
+              pending_actions
+            </span>
+
+          </div>
+
+          <p className="mt-3 text-2xl font-extrabold text-primary">
+            {orders.length}
+          </p>
+        </div>
+
+        {/* Paid orders */}
+
+        <div className="neu-raised min-w-0 rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-3">
+
+            <p className="text-sm font-medium text-on-surface-variant">
+              Paid Orders Awaiting Settlement
+            </p>
+
+            <span className="material-symbols-outlined text-2xl text-green-700">
+              account_balance_wallet
+            </span>
+
+          </div>
+
+          <p className="mt-3 text-2xl font-extrabold text-primary">
+            {orders.filter(isPaid).filter(isSettlementPending).length}
+          </p>
+        </div>
+
+      </div>
+
+      {/* ============================================== */}
+      {/* ERROR MESSAGE                                  */}
+      {/* ============================================== */}
+
+      {error && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700"
+        >
+          <span>{error}</span>
+
           <button
             type="button"
-            className="ml-3 underline"
-            onClick={() => {
-              setError("");
-              loadCatalog();
-            }}
+            onClick={() => loadOrders(false)}
+            className="font-semibold underline"
           >
             Retry
           </button>
         </div>
       )}
 
-      <section className="neu-raised overflow-hidden rounded-2xl">
-        <div className="flex flex-col gap-3 border-b border-primary/10 p-4 sm:flex-row sm:p-6">
-          <div className={`${inputBase} flex items-center px-4 md:max-w-sm md:flex-1`}>
-            <span className="material-symbols-outlined mr-2 text-[20px] text-outline">
+      {/* ============================================== */}
+      {/* SETTLEMENT TABLE                               */}
+      {/* ============================================== */}
+
+      <section className="neu-raised w-full min-w-0 max-w-full overflow-hidden rounded-2xl">
+
+        {/* Table heading and search */}
+
+        <div className="flex flex-col gap-4 border-b border-primary/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+
+          <div className="min-w-0">
+            <h2 className="font-bold text-primary">
+              Pending Settlement Orders
+            </h2>
+
+            <p className="mt-1 text-xs text-on-surface-variant">
+              View order details before confirming settlement.
+            </p>
+          </div>
+
+          <div className="flex w-full min-w-0 items-center rounded-xl border border-primary/10 bg-surface px-4 py-2 sm:w-72 sm:shrink-0">
+            <span className="material-symbols-outlined mr-2 text-lg text-outline">
               search
             </span>
+
             <input
+              type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by ID, name, brand..."
-              className="w-full bg-transparent outline-none placeholder:text-outline"
+              placeholder="Search order, farmer, seller..."
+              className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-outline"
             />
           </div>
-          <select
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-            className={`${inputBase} px-4`}
-          >
-            <option value="ALL">All categories</option>
-            {CATEGORY_OPTIONS.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={loadCatalog}
-            className="neu-btn rounded-xl px-4 py-2 text-sm font-semibold"
-          >
-            Refresh
-          </button>
+
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-outline">
+        {/* Table */}
+
+        <div className="w-full max-w-full overflow-x-auto">
+
+          <table className="w-full min-w-[1250px] text-left text-sm">
+
+            <thead className="bg-primary/[0.035] text-xs uppercase tracking-wide text-outline">
               <tr>
-                {["Image", "ID", "Name", "Category", "Brand", "Price", "Action"].map((heading) => (
-                  <th key={heading} className="px-5 py-4 font-semibold">{heading}</th>
-                ))}
+                <th className="w-44 px-5 py-4 font-semibold">
+                  Order ID
+                </th>
+
+                <th className="min-w-48 px-5 py-4 font-semibold">
+                  Farmer
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Product Total
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Platform Fee
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Delivery Fee
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Grand Total
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Payment Mode
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Payment Status
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Settlement Status
+                </th>
+
+                <th className="px-5 py-4 font-semibold">
+                  Action
+                </th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-primary/10">
-              {visibleProducts.map((product) => (
-                <tr key={product.id} className="transition-colors hover:bg-primary/5">
-                  <td className="px-5 py-4">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-12 w-12 rounded-lg border border-primary/10 object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/5 text-xs text-outline">
-                        No image
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-xs font-semibold text-outline">{product.id}</td>
-                  <td className="px-5 py-4 font-semibold text-primary">{product.name}</td>
-                  <td className="px-5 py-4 text-on-surface-variant">{product.category}</td>
-                  <td className="px-5 py-4 text-on-surface-variant">{product.brand}</td>
-                  <td className="px-5 py-4 font-semibold text-primary">{money(Number(product.price))}</td>
-                  <td className="px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={() => openPriceEditor(product)}
-                      className="neu-btn rounded-lg px-3 py-2 text-xs font-semibold"
-                    >
-                      Update price
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {visibleProducts.length === 0 && (
+
+              {visibleOrders.map((order) => {
+                const orderId = getOrderId(order);
+
+                return (
+                  <tr
+                    key={orderId}
+                    className="transition-colors hover:bg-primary/5"
+                  >
+
+                    <td className="max-w-44 break-all px-5 py-4 font-semibold text-primary">
+                      {orderId || "—"}
+                    </td>
+
+                    <td className="px-5 py-4 text-on-surface-variant">
+                      {order.farmerId || "—"}
+                    </td>
+
+                    <td className="whitespace-nowrap px-5 py-4 font-semibold text-primary">
+                      {money(order.productTotal)}
+                    </td>
+
+                    <td className="whitespace-nowrap px-5 py-4 text-on-surface-variant">
+                      {money(order.platformFee)}
+                    </td>
+
+                    <td className="whitespace-nowrap px-5 py-4 text-on-surface-variant">
+                      {money(order.deliveryFee)}
+                    </td>
+
+                    <td className="whitespace-nowrap px-5 py-4 font-bold text-primary">
+                      {money(order.totalSumFee)}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className="rounded-lg bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary">
+                        {order.paymentMode || "—"}
+                      </span>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <StatusBadge value={order.paymentStatus} />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <StatusBadge value={order.settlementStatus} />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(order)}
+                        className="neu-btn inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          visibility
+                        </span>
+
+                        View
+                      </button>
+                    </td>
+
+                  </tr>
+                );
+              })}
+
+              {/* Empty state */}
+
+              {visibleOrders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-outline">
-                    No products found in the catalog.
+                  <td
+                    colSpan={10}
+                    className="px-6 py-14 text-center text-outline"
+                  >
+                    <span className="material-symbols-outlined mb-2 block text-4xl">
+                      account_balance_wallet
+                    </span>
+
+                    <p className="font-semibold text-primary">
+                      {query
+                        ? "No matching orders found."
+                        : "No pending settlements."}
+                    </p>
+
+                    <p className="mt-1 text-xs">
+                      Pending settlement orders will appear here.
+                    </p>
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
+
         </div>
+
+        {/* Table footer */}
+
+        <div className="border-t border-primary/10 px-5 py-3 text-xs text-on-surface-variant">
+          Showing {visibleOrders.length} of {orders.length} pending orders
+        </div>
+
       </section>
 
-      {showForm && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/40 p-4">
-          <div className="my-auto w-full max-w-xl rounded-2xl bg-surface p-5 shadow-2xl sm:p-7">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-extrabold text-primary">Add catalog product</h2>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Product details and image will be submitted together.
+      {/* ============================================== */}
+      {/* VIEW ORDER MODAL                               */}
+      {/* ============================================== */}
+
+      {selectedOrder && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-3 backdrop-blur-[2px] sm:p-5"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedOrder(null);
+            }
+          }}
+        >
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settlement-modal-title"
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+
+            {/* Modal header */}
+
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-primary/10 px-5 py-4 sm:px-7">
+
+              <div className="min-w-0">
+                <h2
+                  id="settlement-modal-title"
+                  className="text-lg font-extrabold text-primary sm:text-xl"
+                >
+                  Settlement Details
+                </h2>
+
+                <p className="mt-1 break-all text-xs text-on-surface-variant sm:text-sm">
+                  Order ID: {getOrderId(selectedOrder)}
                 </p>
               </div>
+
               <button
                 type="button"
-                onClick={closeForm}
-                className="neu-btn flex h-10 w-10 items-center justify-center rounded-xl"
-                aria-label="Close form"
+                onClick={() => setSelectedOrder(null)}
+                aria-label="Close modal"
+                className="neu-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined">
+                  close
+                </span>
               </button>
+
             </div>
 
-            <form onSubmit={saveProduct} className="mt-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-primary">Product ID</label>
-                  <input
-                    required
-                    value={form.id}
-                    onChange={updateField("id")}
-                    placeholder="PRODUCT01"
-                    className={`${inputBase} w-full px-4`}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-primary">Category</label>
-                  <select
-                    value={form.category}
-                    onChange={updateField("category")}
-                    className={`${inputBase} w-full px-4`}
-                  >
-                    {CATEGORY_OPTIONS.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            {/* Scrollable modal body */}
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-primary">Product name</label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={updateField("name")}
-                  placeholder="Tomato Seeds"
-                  className={`${inputBase} w-full px-4`}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-primary">
-                  Product description
-                </label>
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
 
-                <textarea
-                  required
-                  rows={4}
-                  maxLength={1000}
-                  value={form.description}
-                  onChange={updateField("description")}
-                  placeholder="Enter product description, benefits, usage instructions..."
-                  className={`${inputBase} w-full resize-y px-4 py-3`}
+              {/* Order information */}
+
+              <DetailSection
+                title="Order Information"
+                icon="receipt_long"
+              >
+                <DetailItem
+                  label="Farmer"
+                  value={selectedOrder.farmerId}
                 />
 
-                <p className="mt-1 text-xs text-on-surface-variant text-right">
-                  {form.description.length}/1000 characters
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-primary">Brand</label>
-                  <input
-                    required
-                    value={form.brand}
-                    onChange={updateField("brand")}
-                    placeholder="AgroGrow"
-                    className={`${inputBase} w-full px-4`}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-primary">Price (₹)</label>
-                  <input
-                    required
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.price}
-                    onChange={updateField("price")}
-                    placeholder="450"
-                    className={`${inputBase} w-full px-4`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-primary">
-                  Product quantity
-                </label>
-
-                <div className="grid grid-cols-2 gap-3">
-
-                  {/* Quantity input */}
-                  <input
-                    required
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    value={form.quantity}
-                    onChange={updateField("quantity")}
-                    placeholder="Enter quantity"
-                    className={`${inputBase} w-full px-4`}
-                  />
-
-                  {/* Unit selection */}
-                  <select
-                    value={form.quantityUnit}
-                    onChange={updateField("quantityUnit")}
-                    className={`${inputBase} w-full px-4`}
-                  >
-                    <option value="KG">Kilogram (KG)</option>
-                    <option value="GRAM">Gram (GRAM)</option>
-                    <option value="PIECE">PIECE</option>
-                  </select>
-
-                </div>
-
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  Example: 1 KG, 500 GRAM
-                </p>
-              </div>
-
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-primary">Product image</label>
-                <input
-                  required
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    setImageFile(event.target.files?.[0] ?? null);
-                    setError("");
-                  }}
-                  className={`${inputBase} w-full px-4`}
+                <DetailItem
+                  label="Product ID"
+                  value={selectedOrder.productId}
                 />
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  JPEG, PNG, or WebP; maximum 5 MB.
-                </p>
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="Product preview"
-                    className="mt-3 h-28 w-28 rounded-xl border border-primary/10 object-cover"
-                  />
-                )}
-              </div>
 
-              {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+                <DetailItem
+                  label="Quantity"
+                  value={`${selectedOrder.quantity ?? "—"} (${selectedOrder.productQuantity ?? "—"})`}
+                />
 
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="neu-btn-primary rounded-xl px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                <DetailItem
+                  label="Payment Mode"
+                  value={selectedOrder.paymentMode}
+                />
+
+                <DetailItem
+                  label="Delivery Address ID"
+                  value={selectedOrder.farmerDeliveryAddressId}
+                />
+
+                <DetailItem
+                  label="Order ID"
+                  value={getOrderId(selectedOrder)}
+                />
+              </DetailSection>
+
+              {/* Seller and delivery information */}
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+                <DetailSection
+                  title="Seller Information"
+                  icon="store"
                 >
-                  {isSaving ? "Uploading..." : "Add to catalog"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={closeForm}
-                  className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold text-primary"
+                  <DetailItem
+                    label="Seller Name"
+                    value={selectedOrder.sellerName}
+                  />
+
+                  <DetailItem
+                    label="Seller ID"
+                    value={selectedOrder.sellerId}
+                  />
+
+                  <DetailItem
+                    label="Seller Phone"
+                    value={selectedOrder.sellerPhone}
+                  />
+                </DetailSection>
+
+                <DetailSection
+                  title="Delivery Partner Information"
+                  icon="delivery_dining"
                 >
-                  Cancel
-                </button>
+                  <DetailItem
+                    label="Delivery Boy Name"
+                    value={selectedOrder.deliveryBoyName}
+                  />
+
+                  <DetailItem
+                    label="Delivery Boy ID"
+                    value={selectedOrder.deliveryBoyId}
+                  />
+
+                  <DetailItem
+                    label="Delivery Boy Phone"
+                    value={selectedOrder.deliveryBoyPhone}
+                  />
+                </DetailSection>
+
               </div>
-            </form>
+
+              {/* Payment breakdown */}
+
+              <section className="rounded-xl border border-primary/10 p-4 sm:p-5">
+
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-xl text-primary">
+                    account_balance_wallet
+                  </span>
+
+                  <h3 className="text-sm font-bold text-primary">
+                    Payment Breakdown
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-on-surface-variant">
+                      Product Total
+                    </span>
+
+                    <span className="font-semibold text-primary">
+                      {money(selectedOrder.productTotal)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-on-surface-variant">
+                      Platform Fee
+                    </span>
+
+                    <span className="font-semibold text-primary">
+                      {money(selectedOrder.platformFee)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-on-surface-variant">
+                      Delivery Fee
+                    </span>
+
+                    <span className="font-semibold text-primary">
+                      {money(selectedOrder.deliveryFee)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 border-t border-primary/10 pt-3">
+                    <span className="font-bold text-primary">
+                      Grand Total
+                    </span>
+
+                    <span className="text-lg font-extrabold text-primary">
+                      {money(selectedOrder.totalSumFee)}
+                    </span>
+                  </div>
+
+                </div>
+
+              </section>
+
+              {/* Payment and settlement status */}
+
+              <section className="rounded-xl bg-primary/[0.035] p-4">
+
+                <h3 className="mb-3 text-sm font-bold text-primary">
+                  Payment & Settlement Status
+                </h3>
+
+                <div className="flex flex-wrap gap-4">
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-on-surface-variant">
+                      Payment:
+                    </span>
+
+                    <StatusBadge value={selectedOrder.paymentStatus} />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-on-surface-variant">
+                      Settlement:
+                    </span>
+
+                    <StatusBadge value={selectedOrder.settlementStatus} />
+                  </div>
+
+                </div>
+
+              </section>
+
+              {/* Warning */}
+
+              {!isPaid(selectedOrder) && (
+                <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-800">
+                  <span className="material-symbols-outlined text-lg">
+                    info
+                  </span>
+
+                  <p>
+                    Payment must be PAID before settlement can be completed.
+                    This order cannot be settled yet.
+                  </p>
+                </div>
+              )}
+
+            </div>
+
+            {/* Fixed modal footer */}
+
+            <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-primary/10 bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={handleComplete}
+                disabled={
+                  !isPaid(selectedOrder) ||
+                  !isSettlementPending(selectedOrder) ||
+                  Boolean(processingOrderId)
+                }
+                className="neu-btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {processingOrderId === getOrderId(selectedOrder)
+                    ? "hourglass_top"
+                    : "check_circle"}
+                </span>
+
+                {processingOrderId === getOrderId(selectedOrder)
+                  ? "Processing..."
+                  : "Confirm Settlement"}
+              </button>
+
+            </div>
+
           </div>
+
         </div>
       )}
 
-      {priceProduct && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl sm:p-7">
-            <h2 className="text-xl font-extrabold text-primary">Update product price</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">
-              {priceProduct.name} ({priceProduct.id})
-            </p>
-            <form onSubmit={savePrice} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-primary">New price (₹)</label>
-                <input
-                  required
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={newPrice}
-                  onChange={(event) => {
-                    setNewPrice(event.target.value);
-                    setError("");
-                  }}
-                  className={`${inputBase} w-full px-4`}
-                />
-              </div>
-              {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={isUpdatingPrice}
-                  className="neu-btn-primary rounded-xl px-5 py-3 text-sm font-semibold disabled:opacity-60"
-                >
-                  {isUpdatingPrice ? "Updating..." : "Save price"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isUpdatingPrice}
-                  onClick={() => {
-                    setPriceProduct(null);
-                    setError("");
-                  }}
-                  className="neu-btn rounded-xl px-5 py-3 text-sm font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ============================================== */}
+      {/* SUCCESS TOAST                                  */}
+      {/* ============================================== */}
 
       {toast && (
         <div
@@ -594,8 +816,9 @@ const ProductManagement = () => {
           {toast}
         </div>
       )}
+
     </div>
   );
 };
 
-export default ProductManagement;
+export default FinanceSettlement;

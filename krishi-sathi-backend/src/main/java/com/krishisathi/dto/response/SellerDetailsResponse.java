@@ -1,0 +1,14 @@
+package com.krishisathi.dto.response;
+
+import com.krishisathi.model.SellerProfile;
+
+public record SellerDetailsResponse(
+        String sellerId,
+        String fullName,
+        String email,
+        String mobileNumber,
+        String role,
+        String loginAccess,
+        SellerProfile businessDetails
+) {
+}

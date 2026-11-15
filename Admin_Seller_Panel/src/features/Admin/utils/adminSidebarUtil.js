@@ -27,15 +27,16 @@ export const ADMIN_NAV_LINKS = [
     label: 'Delivery Partners',
     to: '/admin-dashboard/delivery-management',
   },
-  {
-    icon: 'groups',
-    label: 'Customers',
-    to: '/admin-dashboard/customers',
-  },
+
   {
     icon: 'account_balance_wallet',
     label: 'Finance & COD Settlement',
     to: '/admin-dashboard/finance',
+  },
+  {
+    icon: 'groups',
+    label: 'Customers',
+    to: '/admin-dashboard/customers',
   },
   {
     icon: 'local_offer',

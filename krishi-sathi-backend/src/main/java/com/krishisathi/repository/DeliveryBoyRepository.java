@@ -12,6 +12,8 @@ public interface DeliveryBoyRepository
 
     boolean existsByFarmerEmail(String farmerEmail);
     Optional<DeliveryBoy> findByMobileNumber(String mobileNumber);
+    
+    
    
 
    

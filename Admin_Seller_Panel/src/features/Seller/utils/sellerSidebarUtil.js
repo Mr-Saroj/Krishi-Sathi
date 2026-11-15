@@ -7,31 +7,23 @@ export const SELLER_NAV_LINKS = [
     to: '/seller-dashboard',
     end: true,
   },
- {
-  icon: 'add_box',
-  label: 'Add New Product',
-  to: '/seller-dashboard/add-new product',
-},
+  {
+    icon: 'add_box',
+    label: 'Add New Product',
+    to: '/seller-dashboard/add-new product',
+  },
   {
     icon: 'inventory',
     label: 'Inventory Management',
     to: '/seller-dashboard/inventory',
   },
   {
-    icon: 'shopping_cart',
-    label: 'New Orders',
-    to: '/seller-dashboard/orders/new',
-  },
-  {
-    icon: 'receipt_long',
-    label: 'All Orders',
-    to: '/seller-dashboard/orders',
-  },
-  {
     icon: 'local_shipping',
     label: 'Ready for Pickup',
-    to: '/seller-dashboard/orders/ready-for-pickup',
+    to: '/seller-dashboard/ready-for-pickup',
   },
+
+
   {
     icon: 'assignment_return',
     label: 'Returns & Cancellations',
@@ -39,7 +31,7 @@ export const SELLER_NAV_LINKS = [
   },
   {
     icon: 'account_balance_wallet',
-    label: 'Sales & Settlements',
+    label: 'Pending Settlements',
     to: '/seller-dashboard/settlements',
   },
   {

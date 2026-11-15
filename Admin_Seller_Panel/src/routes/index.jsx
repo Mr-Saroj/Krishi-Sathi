@@ -7,17 +7,7 @@ import AdminDashboardLayout from "../features/Admin/components/AdminDashboardLay
 // Common loader
 import PageLoader from "../components/common/PageLoader";
 
-// Landing skeleton
-import HomeSkeleton from "../features/Landing/Skeleton/HomeSkeleton";
-
-// Authentication skeletons
-import RegisterSkeleton from "../features/Auth/Skeliton/RegisterSkeleton";
-import LoginSkeleton from "../features/Auth/Skeliton/LoginSkeleton";
 import ProtectedRoute from "../features/Auth/ProtectedRoute";
-
-
-
-
 
 // Auth part
 const Home = lazy(() => import("../features/Landing/Home"));
@@ -46,6 +36,9 @@ const FinanceCommission = lazy(
 const CustomerManagement = lazy(
   () => import("../features/Admin/components/CustomerManagement")
 );
+const FinanceSettlement = lazy(
+  () => import("../features/Admin/components/FinanceSettlement")
+);
 
 //Seller Dashboard part
 const SellerDashboardLayout = lazy(
@@ -59,6 +52,12 @@ const SellerInventory = lazy(
 );
 const AddProductCatalog = lazy(
   () => import("../features/Seller/components/AddProductCatalog")
+);
+const SellerOrders = lazy(
+  () => import("../features/Seller/components/SellerOrders")
+);
+const SellerSettlements = lazy(
+  () => import("../features/Seller/components/SellerSettlements")
 );
 
 // 404 page (unavailable routes)
@@ -119,7 +118,7 @@ const router = createBrowserRouter([
             path: "delivery-management",
             element: <DeliveryManagement />,
           },
-          { path: "finance", element: <FinanceCommission /> },
+          { path: "finance", element: <FinanceSettlement /> },
           { path: "customers", element: <CustomerManagement /> },
         ],
       },
@@ -140,6 +139,8 @@ const router = createBrowserRouter([
           { index: true, element: <SellerMiddleContent /> },
           { path: "inventory", element: <SellerInventory /> },
           { path: "add-new product", element: <AddProductCatalog /> },
+          { path: "ready-for-pickup", element: <SellerOrders /> },
+          { path: "settlements", element: <SellerSettlements /> },
 
 
         ],

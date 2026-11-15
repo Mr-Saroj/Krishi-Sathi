@@ -35,4 +35,6 @@ public class Order {
     private String paymentStatus;
 
     private String farmerDeliveryAddressId;
+
+    private String settlementStatus;
 }

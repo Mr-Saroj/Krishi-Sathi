@@ -27,10 +27,20 @@ public class OrderAssignment {
     private String sellerName;
     private String sellerPhone;
 
+    private DeliveryAssignmentStatus deliveryStatus;
+
+    private Instant assignedAt;
+    private Instant expiresAt;
+    private Instant acceptedAt;
+
     // delivery boy (null until assigned)
     private String deliveryBoyId;
     private String deliveryBoyName;
     private String deliveryBoyPhone;
+
+    private String pickupOtpHash;
+    private Instant pickupOtpGeneratedAt;
+    private Instant pickupOtpExpiresAt;
 
     private Instant createdAt;
     private Instant updatedAt;

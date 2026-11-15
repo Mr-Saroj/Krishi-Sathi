@@ -8,6 +8,9 @@ import useKeyboardVisible from '../../src/farmer/hooks/useKeyboardVisible';
 import Home from './home';
 import DeliveryboyTopbar from '../../src/deliveryBoy/components/DeliveryboyTopbar';
 import DeliveryboyBottomNav from '../../src/deliveryBoy/components/DeliveryboyBottomNav';
+import Orders from './orders';
+import Profile from './profile';
+import Earnings from './earnings';
 
 const BG = '#EEF3EC';
 type TabKey = 'home' | 'orders' | 'map' | 'earnings' | 'profile';
@@ -56,16 +59,16 @@ export default function DeliveryboyDashboard() {
                         <Home onStartNavigation={() => setTab('map')} />
                     </Screen>
                     <Screen show={tab === 'orders'}>
-                        <Placeholder title="Orders" />
+                        <Orders/>
                     </Screen>
                     <Screen show={tab === 'map'}>
                         <Placeholder title="Map" />
                     </Screen>
                     <Screen show={tab === 'earnings'}>
-                        <Placeholder title="Earnings" />
+                        <Earnings/>
                     </Screen>
                     <Screen show={tab === 'profile'}>
-                        <Placeholder title="Profile" />
+                       <Profile/>
                     </Screen>
                 </View>
             </SafeAreaView>

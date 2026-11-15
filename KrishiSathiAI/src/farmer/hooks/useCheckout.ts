@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import RazorpayCheckout from 'react-native-razorpay';
 
 import {
   getAddresses,
@@ -10,8 +11,14 @@ import {
 
 import {
   placeFarmerOrder,
+  createFarmerPayment,
+  verifyFarmerPayment,
+  getFarmerPaymentStatus,
   type PlaceOrderRequest,
   type PlaceOrderResponse,
+  type CreatePaymentResponse,
+  type VerifyPaymentRequest,
+  type PaymentStatusResponse,
 } from '../services/farmerOrderService';
 
 export const MIN_QUANTITY = 1;
@@ -20,10 +27,14 @@ export const MAX_QUANTITY = 99;
 export const PLATFORM_FEE = 30;
 export const DELIVERY_CHARGE = 50;
 
-// Stores both UUID and the exact request for a pending attempt.
+export type PaymentMethod = 'COD' | 'ONLINE';
+
+// Stores the exact request and already-created business order.
+// This prevents duplicate orders when online payment is retried.
 type PendingOrderAttempt = {
   idempotencyKey: string;
   request: PlaceOrderRequest;
+  order?: PlaceOrderResponse;
 };
 
 export const formatPrice = (amount: number) =>
@@ -98,12 +109,9 @@ export default function useCheckout(
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  // Keep the current pending attempt in memory.
-  // useRef prevents unnecessary renders.
   const pendingOrderRef =
     useRef<PendingOrderAttempt | null>(null);
 
-  // Expose key for debugging/UI if required.
   const [idempotencyKey, setIdempotencyKey] =
     useState<string | null>(null);
 
@@ -186,12 +194,17 @@ export default function useCheckout(
   const getOrCreateOrderAttempt = (
     currentRequest: PlaceOrderRequest,
   ): PendingOrderAttempt => {
-    // If an attempt already exists, reuse its UUID and exact request.
-    if (pendingOrderRef.current) {
-      return pendingOrderRef.current;
+    const existingAttempt = pendingOrderRef.current;
+
+    // Reuse the same order attempt if request is identical.
+    if (
+      existingAttempt &&
+      JSON.stringify(existingAttempt.request) ===
+        JSON.stringify(currentRequest)
+    ) {
+      return existingAttempt;
     }
 
-    // First attempt: create a new UUID.
     const newAttempt: PendingOrderAttempt = {
       idempotencyKey: Crypto.randomUUID(),
       request: currentRequest,
@@ -204,14 +217,106 @@ export default function useCheckout(
     return newAttempt;
   };
 
-  // ==================== PLACE ORDER API ====================
+  // ==================== CREATE RAZORPAY ORDER ====================
 
-  const handlePlaceOrder = async () => {
+  const createRazorpayOrder = async (
+    orderId: string,
+  ): Promise<CreatePaymentResponse> => {
+    const response = await createFarmerPayment(orderId);
+
+    return response.data;
+  };
+
+  // ==================== VERIFY RAZORPAY PAYMENT ====================
+
+  const verifyRazorpayPayment = async (
+    paymentData: VerifyPaymentRequest,
+  ): Promise<PaymentStatusResponse> => {
+    const response = await verifyFarmerPayment(paymentData);
+
+    return response.data;
+  };
+
+  // ==================== CHECK PAYMENT STATUS ====================
+
+  const checkPaymentStatus = async (
+    orderId: string,
+  ): Promise<PaymentStatusResponse> => {
+    const response = await getFarmerPaymentStatus(orderId);
+
+    return response.data;
+  };
+
+  // ==================== OPEN RAZORPAY CHECKOUT ====================
+
+  const openRazorpayCheckout = async (
+    order: PlaceOrderResponse,
+  ): Promise<PlaceOrderResponse> => {
+
+    // Step 1: Create or reuse Razorpay order from backend.
+    const paymentOrder = await createRazorpayOrder(order.id);
+
+    console.log('RAZORPAY ORDER:', paymentOrder);
+
+    if (
+      !paymentOrder.razorpayOrderId ||
+      !paymentOrder.keyId ||
+      !paymentOrder.amount
+    ) {
+      throw new Error('Invalid Razorpay order response.');
+    }
+
+    // Step 2: Open Razorpay checkout.
+    const razorpayResponse = await RazorpayCheckout.open({
+      key: paymentOrder.keyId,
+      amount: String(paymentOrder.amount),
+      currency: paymentOrder.currency,
+      name: 'Krishi Sathi AI',
+      description: 'Agricultural product order',
+      order_id: paymentOrder.razorpayOrderId,
+      theme: {
+        color: '#14532D',
+      },
+    });
+
+    console.log('RAZORPAY RESPONSE:', razorpayResponse);
+
+    // Step 3: Send payment details to backend for verification.
+    const verificationResponse = await verifyRazorpayPayment({
+      razorpayOrderId: razorpayResponse.razorpay_order_id,
+      razorpayPaymentId: razorpayResponse.razorpay_payment_id,
+      razorpaySignature: razorpayResponse.razorpay_signature,
+    });
+
+    console.log(
+      'PAYMENT VERIFICATION:',
+      verificationResponse,
+    );
+
+    if (verificationResponse.paymentStatus !== 'CAPTURED') {
+      throw new Error(
+        verificationResponse.message ||
+          'Payment could not be confirmed.',
+      );
+    }
+
+    // Step 4: Return updated order for success navigation.
+    return {
+      ...order,
+      paymentStatus: 'PAID',
+    };
+  };
+
+  // ==================== PLACE ORDER ====================
+
+  const handlePlaceOrder = async (
+    paymentMethod: PaymentMethod,
+  ) => {
     if (isPlacingOrder) {
       return;
     }
 
-    // Validate product
+    // Validate product.
     if (!product || !productId) {
       Alert.alert(
         'Product Unavailable',
@@ -220,7 +325,7 @@ export default function useCheckout(
       return;
     }
 
-    // Validate quantity
+    // Validate quantity.
     if (
       quantity < MIN_QUANTITY ||
       quantity > MAX_QUANTITY
@@ -232,7 +337,7 @@ export default function useCheckout(
       return;
     }
 
-    // Validate address
+    // Validate address.
     if (!selectedAddress?.addressId) {
       Alert.alert(
         'Delivery Address Required',
@@ -241,7 +346,7 @@ export default function useCheckout(
       return;
     }
 
-    // Validate price
+    // Validate price.
     if (unitPrice <= 0 || !Number.isFinite(unitPrice)) {
       Alert.alert(
         'Invalid Product Price',
@@ -253,7 +358,7 @@ export default function useCheckout(
     try {
       setIsPlacingOrder(true);
 
-      // Prepare current checkout request.
+      // Prepare business order request.
       const orderData: PlaceOrderRequest = {
         productId,
         quantity,
@@ -262,10 +367,10 @@ export default function useCheckout(
         platformFee: PLATFORM_FEE,
         deliveryFee: DELIVERY_CHARGE,
         totalSumFee: totalAmount,
-        paymentMode: 'COD',
+        paymentMode: paymentMethod,
       };
 
-      // Create a new attempt or reuse the pending attempt.
+      // Create or reuse the same business order attempt.
       const attempt = getOrCreateOrderAttempt(orderData);
 
       console.log(
@@ -273,29 +378,48 @@ export default function useCheckout(
         attempt.idempotencyKey,
       );
 
-      console.log(
-        'ORDER REQUEST:',
-        attempt.request,
-      );
+      console.log('ORDER REQUEST:', attempt.request);
 
-      // Always send the original request and same UUID on retry.
-      const response = await placeFarmerOrder(
-        attempt.request,
-        attempt.idempotencyKey,
-      );
+      let order = attempt.order;
 
-      console.log('PLACE ORDER RESPONSE:', response);
+      // Create business order only once.
+      if (!order) {
+        order = await placeFarmerOrder(
+          attempt.request,
+          attempt.idempotencyKey,
+        );
 
-      // Clear pending attempt only after confirmed success.
+        // Save it locally before starting online payment.
+        attempt.order = order;
+        pendingOrderRef.current = attempt;
+      }
+
+      console.log('BUSINESS ORDER:', order);
+
+      // ==================== COD ====================
+
+      if (paymentMethod === 'COD') {
+        pendingOrderRef.current = null;
+        setIdempotencyKey(null);
+
+        // COD order is placed. Payment is collected at delivery.
+        onOrderSuccess(order);
+        return;
+      }
+
+      // ==================== ONLINE ====================
+
+      const paidOrder = await openRazorpayCheckout(order);
+
+      // Payment verified successfully.
       pendingOrderRef.current = null;
       setIdempotencyKey(null);
 
-      // Navigate to success screen with actual Order response.
-      onOrderSuccess(response);
+      onOrderSuccess(paidOrder);
 
     } catch (error: any) {
       console.error(
-        'PLACE ORDER ERROR:',
+        'PLACE ORDER / PAYMENT ERROR:',
         error?.response?.data || error,
       );
 
@@ -304,16 +428,51 @@ export default function useCheckout(
         (typeof error?.response?.data === 'string'
           ? error.response.data
           : null) ||
+        error?.description ||
         error?.message ||
-        'Something went wrong while placing your order.';
+        'Something went wrong. Please try again.';
+
+      // If online payment might have succeeded but the app
+      // did not receive the verification response, check status.
+      const pendingAttempt = pendingOrderRef.current;
+
+      if (
+        pendingAttempt?.order &&
+        pendingAttempt.request.paymentMode === 'ONLINE'
+      ) {
+        try {
+          const status = await checkPaymentStatus(
+            pendingAttempt.order.id,
+          );
+
+          console.log('CURRENT PAYMENT STATUS:', status);
+
+          if (status.paymentStatus === 'CAPTURED') {
+            const paidOrder: PlaceOrderResponse = {
+              ...pendingAttempt.order,
+              paymentStatus: 'PAID',
+            };
+
+            pendingOrderRef.current = null;
+            setIdempotencyKey(null);
+
+            onOrderSuccess(paidOrder);
+            return;
+          }
+        } catch (statusError) {
+          console.error(
+            'PAYMENT STATUS CHECK ERROR:',
+            statusError,
+          );
+        }
+      }
 
       Alert.alert(
-        'Order Failed',
-        `${backendMessage}\n\nYou can retry. The same order ID and original request will be used.`,
+        'Payment / Order Not Confirmed',
+        `${backendMessage}\n\nYour order attempt is retained. You can retry without creating another business order.`,
       );
 
-      // Do not clear pendingOrderRef here.
-      // The next retry will reuse the same UUID and request.
+      // Keep pending attempt for retry.
     } finally {
       setIsPlacingOrder(false);
     }
@@ -331,7 +490,7 @@ export default function useCheckout(
 
     Alert.alert(
       'Retry Attempt Reset',
-      'The previous pending attempt has been cleared. The next order submission will generate a new ID.',
+      'The local retry reference has been cleared. This does not cancel an order or payment already created on the server.',
     );
   };
 

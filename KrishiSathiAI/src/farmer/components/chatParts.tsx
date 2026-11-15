@@ -25,9 +25,9 @@ function extractAnswer(rawResponse: string): string {
 
   if (!raw) return "";
 
-  // First, try parsing the entire response as JSON.
+  // Handle a complete JSON response if one is returned.
   try {
-    const parsed: unknown = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
 
     if (typeof parsed === "string") {
       return parsed;
@@ -35,57 +35,17 @@ function extractAnswer(rawResponse: string): string {
 
     if (parsed && typeof parsed === "object") {
       const answer = extractTextFromEvent(parsed as ChatEvent);
-      if (answer) return answer;
+
+      if (answer) {
+        return answer;
+      }
     }
   } catch {
-    // The response may contain multiple NDJSON lines or plain text.
+    // Normal Markdown/plain-text response.
   }
 
-  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const chunks: string[] = [];
-
-  for (const originalLine of lines) {
-    // Support SSE-style "data: {...}" lines if they are forwarded.
-    const line = originalLine.startsWith("data:")
-      ? originalLine.slice(5).trim()
-      : originalLine;
-
-    if (!line || line === "[DONE]") continue;
-
-    try {
-      const event: unknown = JSON.parse(line);
-
-      if (typeof event === "string") {
-        chunks.push(event);
-        continue;
-      }
-
-      if (event && typeof event === "object") {
-        const record = event as ChatEvent;
-
-        if (record.error) {
-          throw new Error(String(record.error));
-        }
-
-        const chunk = extractTextFromEvent(record);
-        if (chunk) chunks.push(chunk);
-      }
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        !error.message.startsWith("Unexpected token") &&
-        !error.message.includes("JSON")
-      ) {
-        throw error;
-      }
-
-      // If the line is not JSON, preserve it as plain text.
-      // Do not silently discard a legitimate AI answer.
-      chunks.push(line);
-    }
-  }
-
-  return chunks.join("").trim();
+  // Preserve Markdown formatting and line breaks.
+  return raw;
 }
 
 function extractTextFromEvent(event: ChatEvent): string {
@@ -309,6 +269,9 @@ export function ChatHeader({
   );
 }
 
+
+import MarkdownMessage from "./MarkdownMessage";
+
 export function MessageBubble({ m }: { m: Msg }) {
   const isUser = m.from === "user";
 
@@ -328,23 +291,28 @@ export function MessageBubble({ m }: { m: Msg }) {
       )}
 
       <View
-        className="max-w-[78%] rounded-3xl px-4 py-3"
+        className="max-w-[88%] rounded-3xl px-4 py-3"
         style={{
           backgroundColor: isUser ? FOREST : "#FFFFFF",
           borderBottomRightRadius: isUser ? 6 : 24,
           borderTopLeftRadius: isUser ? 24 : 6,
         }}
       >
-        <Text
-          className="text-[15px] leading-[21px]"
-          style={{ color: isUser ? "#FFFFFF" : INK }}
-        >
-          {m.text}
-        </Text>
+        {isUser ? (
+          <Text
+            className="text-[15px] leading-[21px]"
+            style={{ color: "#FFFFFF" }}
+          >
+            {m.text}
+          </Text>
+        ) : (
+          <MarkdownMessage content={m.text} />
+        )}
       </View>
     </View>
   );
 }
+
 
 export function TypingBubble() {
   return (
