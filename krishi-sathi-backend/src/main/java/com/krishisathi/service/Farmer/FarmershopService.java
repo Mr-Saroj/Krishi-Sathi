@@ -1,5 +1,6 @@
 package com.krishisathi.service.Farmer;
 
+import com.krishisathi.dto.cache.CachedProductPage;
 import com.krishisathi.dto.request.PlaceOrderRequest;
 import com.krishisathi.dto.response.FarmerOrderResponse;
 import com.krishisathi.dto.response.FarmerShopProductResponse;
@@ -19,19 +20,25 @@ import com.krishisathi.repository.SellerProfileRepository;
 import com.krishisathi.repository.UserRepository;
 import com.krishisathi.service.common.RabbitMessagePublisher;
 import java.util.UUID;
+import java.time.Duration;
 
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.krishisathi.model.Order;
 import com.krishisathi.service.common.NotificationMessage;
 import com.krishisathi.config.RabbitMQConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 @RequiredArgsConstructor
@@ -44,16 +51,75 @@ public class FarmershopService {
         private final OrderRepository orderRepository;
         private final OrderStatusRepository orderStatusRepository;
         private final RabbitMessagePublisher rabbitMessagePublisher;
+        private final StringRedisTemplate redisTemplate;
+        private final ObjectMapper objectMapper;
 
         public Page<FarmerShopProductResponse> getProductsByCategory(
                         String category,
                         Pageable pageable) {
 
+                String normalizedCategory = category.trim()
+                                .toLowerCase(Locale.ROOT);
+
+                // 1. Generate unique key for category + page + size
+                String cacheKey = "farmer:products:"
+                                + normalizedCategory + ":"
+                                + pageable.getPageNumber() + ":"
+                                + pageable.getPageSize();
+
+                try {
+                        // 2. Check Redis first
+                        String cachedData = redisTemplate.opsForValue()
+                                        .get(cacheKey);
+
+                        if (cachedData != null) {
+
+                                CachedProductPage cachedPage = objectMapper.readValue(
+                                                cachedData,
+                                                new TypeReference<CachedProductPage>() {
+                                                });
+
+                                // 3. Return cached data
+                                return new PageImpl<>(
+                                                cachedPage.content(),
+                                                pageable,
+                                                cachedPage.totalElements());
+                        }
+
+                } catch (Exception e) {
+                        // Redis failure: continue with MongoDB
+                }
+
+                // 4. Cache MISS: Fetch from MongoDB
                 Page<CatalogProduct> products = catalogProductRepository.findByCategoryIgnoreCase(
                                 category.trim(),
                                 pageable);
 
-                return products.map(this::mapToResponse);
+                // 5. Convert MongoDB entities into DTOs
+                Page<FarmerShopProductResponse> response = products.map(this::mapToResponse);
+
+                // 6. Prepare cache object
+                CachedProductPage cacheData = new CachedProductPage(
+                                response.getContent(),
+                                response.getNumber(),
+                                response.getSize(),
+                                response.getTotalElements());
+
+                try {
+                        // 7. Store in Redis for 5 minutes
+                        String json = objectMapper.writeValueAsString(cacheData);
+
+                        redisTemplate.opsForValue().set(
+                                        cacheKey,
+                                        json,
+                                        Duration.ofMinutes(5));
+
+                } catch (Exception e) {
+                        // Cache failure should not break product API
+                }
+
+                // 8. Return MongoDB result
+                return response;
         }
 
         private FarmerShopProductResponse mapToResponse(
@@ -71,6 +137,8 @@ public class FarmershopService {
                                 .imageUrl(product.getImageUrl())
                                 .build();
         }
+
+
 
         public String checkAvailability(String email) {
 

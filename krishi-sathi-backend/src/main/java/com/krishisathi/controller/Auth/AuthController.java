@@ -161,6 +161,57 @@ public class AuthController {
                                 "role", databaseRole.toUpperCase()));
         }
 
+        @GetMapping("/app-me")
+        public ResponseEntity<?> appCurrentUser() {
+
+                // 1. Get authenticated user
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+                if (authentication == null
+                                || !authentication.isAuthenticated()
+                                || "anonymousUser".equals(authentication.getPrincipal())) {
+
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+
+                // 2. Allow only FARMER and DELIVERY_BOY
+                String role = authentication.getAuthorities()
+                                .stream()
+                                .map(authority -> authority.getAuthority())
+                                .filter(authority -> authority.equals("FARMER")
+                                                || authority.equals("DELIVERY_BOY"))
+                                .findFirst()
+                                .orElse(null);
+
+                if (role == null) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+
+                // 3. Get email
+                String email = authentication.getName();
+
+                // 4. Find user
+                var optionalUser = userRepository.findByEmail(email);
+
+                if (optionalUser.isEmpty()) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+
+                User user = optionalUser.get();
+
+                // 5. Verify database role
+                String databaseRole = user.getRole().toString();
+
+                if (!role.equalsIgnoreCase(databaseRole)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+
+                // 6. Return user details
+                return ResponseEntity.ok(Map.of(
+                                "fullName", user.getFullName(),
+                                "role", databaseRole.toUpperCase()));
+        }
+
         @PostMapping("/logout")
         public ResponseEntity<ApiResponse> logout(
                         HttpServletResponse response) {

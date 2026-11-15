@@ -1,6 +1,7 @@
 package com.krishisathi.controller.Farmer;
 
 import com.krishisathi.dto.request.PlaceOrderRequest;
+import com.krishisathi.dto.response.FarmerShopProductResponse;
 import com.krishisathi.model.CatalogProduct;
 import com.krishisathi.model.Order;
 import com.krishisathi.repository.CatalogProductRepository;
@@ -27,12 +28,13 @@ public class FarmershopController {
         private final FarmershopService farmershopService;
 
         @GetMapping("/products")
-        public ResponseEntity<Page<CatalogProduct>> getProductsByCategory(
+        public ResponseEntity<Page<FarmerShopProductResponse>> getProductsByCategory(
                         @RequestParam String category,
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "20") int size) {
 
-                if (page < 0 || size < 1 || size > 100) {
+                if (category == null || category.isBlank()
+                                || page < 0 || size < 1 || size > 100) {
                         return ResponseEntity.badRequest().build();
                 }
 
@@ -41,8 +43,8 @@ public class FarmershopController {
                                 size,
                                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
-                Page<CatalogProduct> products = catalogProductRepository.findByCategoryIgnoreCase(
-                                category.trim(),
+                Page<FarmerShopProductResponse> products = farmershopService.getProductsByCategory(
+                                category,
                                 pageable);
 
                 return ResponseEntity.ok(products);
