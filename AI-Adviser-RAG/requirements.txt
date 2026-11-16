@@ -1,3 +1,6 @@
+fastapi
+uvicorn[standard]
+
 langchain
 langchain-core
 langchain-community
@@ -8,6 +11,5 @@ faiss-cpu
 chromadb
 langchain-groq
 python-dotenv
-
 unstructured
 openpyxl
